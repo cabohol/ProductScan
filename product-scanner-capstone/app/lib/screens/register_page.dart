@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -460,24 +461,31 @@ class _RegisterPageState extends State<RegisterPage> {
 
                       // Login Link
                       Center(
-                        child: Text.rich(
-                          TextSpan(
-                            text: "Already have an account? ",
-                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                            children: [
-                              TextSpan(
-                                text: "Sign In",
-                                style: TextStyle(
-                                  color: primaryDark,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Syne',
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginPage()),
+                            );
+                          },
+                          child: Text.rich(
+                            TextSpan(
+                              text: "Already have an account? ",
+                              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                              children: [
+                                TextSpan(
+                                  text: "Sign In",
+                                  style: TextStyle(
+                                    color: primaryDark,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Syne',
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 5),
                     ],
                   ),
