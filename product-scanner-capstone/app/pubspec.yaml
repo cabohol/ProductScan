@@ -13,6 +13,9 @@ dependencies:
   # Supabase
   supabase_flutter: ^2.5.0
 
+  # Environment variables
+  flutter_dotenv: ^5.1.0  
+
   # Camera
   camera: ^0.11.0
   image_picker: ^1.1.0
@@ -37,6 +40,7 @@ flutter:
 
   assets:
     - assets/images/favicon.png
+    - .env
 
   fonts:
     - family: Syne
