@@ -191,11 +191,11 @@ class _LoginPageState extends State<LoginPage> {
                       // Title
                       const Text(
                         "Welcome Back!",
-                        style: TextStyle(
+                          style: TextStyle(
                           fontFamily: 'Syne',
-                          fontSize: 28,
+                          fontSize: 25,
                           fontWeight: FontWeight.bold,
-                          color: primaryDark,
+                          color: Color(0xFF0D7377),
                         ),
                       ),
                       const SizedBox(height: 5),
