@@ -22,38 +22,80 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   Future<void> _handleResetPassword() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    try {
-      await _authService.resetPassword(_emailController.text.trim());
+  try {
+    await _authService.resetPassword(_emailController.text.trim());
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password reset link sent to your email!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 4),
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          elevation: 6,
+          backgroundColor: const Color(0xFF249E94),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send reset link: ${e.toString()}'),
-            backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+          content: Row(
+            children: const [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Password reset link sent to your email!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+        ),
+      );
+      Navigator.pop(context);
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          elevation: 6,
+          backgroundColor: Colors.red.shade600,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Failed to send reset link: ${e.toString()}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -63,14 +105,18 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back, 
+            color: Color(0xFF005461),
+            size: 30,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Form(
               key: _formKey,
               child: Column(
@@ -79,15 +125,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 children: [
                   Icon(
                     Icons.lock_reset,
-                    size: 80,
-                    color: Theme.of(context).primaryColor,
+                    size: 150,
+                    color: const Color(0xFF0C7779),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   
                   Text(
                     'Forgot Password?',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w300,
+                          color: const Color(0xFF0C7779),
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -100,28 +147,34 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 48),
+
+                  const SizedBox(height: 30),
 
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(fontSize: 16),
                     decoration: InputDecoration(
-                      labelText: 'Email',
-                      hintText: 'Enter your email',
-                      prefixIcon: const Icon(Icons.email_outlined),
+                      hintText: 'Email Address',
+                      hintStyle: const TextStyle(color: Color(0xFF0C7779)),
+                      prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF0C7779)),
+                      filled: true,
+                      fillColor: const Color(0xFFE8F5F5),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
+                        borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Theme.of(context).primaryColor,
-                          width: 2,
-                        ),
+                        borderSide: const BorderSide(color: Color(0xFF0C7779), width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 18,
+                        horizontal: 16,
                       ),
                     ),
                     validator: (value) {
@@ -134,41 +187,59 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 32),
 
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _handleResetPassword,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 45),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 45,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _handleResetPassword,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0D7377),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
                       ),
-                      elevation: 2,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text(
-                            'Send Reset Link',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(
+                                  Icons.send_rounded,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  "SEND RESET LINK",
+                                  style: TextStyle(
+                                    fontFamily: 'Syne',
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+          );
+        }
+      }
