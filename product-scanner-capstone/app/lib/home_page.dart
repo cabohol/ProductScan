@@ -17,7 +17,6 @@ class _HomePageState extends State<HomePage> {
     {'image': 'assets/images/j1.jpg', 'type': 'Ring'},
     {'image': 'assets/images/j2.jpg', 'type': 'Necklace'},
     {'image': 'assets/images/j3.jpg', 'type': 'Earrings'},
-    {'image': 'assets/images/j4.jpg', 'type': 'Bracelet'},
   ];
 
   final List<Map<String, String>> jewelryTips = [
