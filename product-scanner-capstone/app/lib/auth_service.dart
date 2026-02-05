@@ -1,4 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -65,4 +67,81 @@ class AuthService {
 
   // Listen to auth state changes
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
+
+  // Update user's name in Supabase
+  Future<void> updateUserName(String newName) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      await _supabase.auth.updateUser(
+        UserAttributes(data: {'name': newName}),
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Upload profile picture
+  Future<String> uploadProfilePicture(Uint8List imageBytes, String fileName) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('No user logged in');
+
+    try {
+      final String fileExt = fileName.split('.').last;
+      final String newFileName = '${user.id}.$fileExt';
+      final String filePath = 'avatars/$newFileName';
+
+      // Upload to Supabase Storage
+      await _supabase.storage.from('ProductScan').uploadBinary(
+            filePath,
+            imageBytes,
+            fileOptions: const FileOptions(upsert: true),
+          );
+
+      // Get public URL
+      final String publicUrl = _supabase.storage.from('ProductScan').getPublicUrl(filePath);
+
+      // Update user metadata with avatar URL
+      await _supabase.auth.updateUser(
+        UserAttributes(data: {'avatar_url': publicUrl}),
+      );
+
+      return publicUrl;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Delete profile picture
+  Future<void> deleteProfilePicture() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('No user logged in');
+
+    try {
+      final avatarUrl = user.userMetadata?['avatar_url'] as String?;
+      if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        // Extract file path from URL
+        final uri = Uri.parse(avatarUrl);
+        final pathSegments = uri.pathSegments;
+        final filePath = pathSegments.sublist(pathSegments.indexOf('ProductScan') + 1).join('/');
+
+        // Delete from storage
+        await _supabase.storage.from('ProductScan').remove([filePath]);
+
+        // Update user metadata to remove avatar URL
+        await _supabase.auth.updateUser(
+          UserAttributes(data: {'avatar_url': null}),
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Get profile picture URL
+  String? getProfilePictureUrl() {
+    final user = _supabase.auth.currentUser;
+    return user?.userMetadata?['avatar_url'] as String?;
+  }
 }
