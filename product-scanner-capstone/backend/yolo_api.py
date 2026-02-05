@@ -27,9 +27,7 @@ def estimate_value(category, confidence):
     base_values = {
         'Ring': 500,
         'Necklace': 800,
-        'Bracelet': 600,
         'Earring': 400,
-        'Watch': 1200,
     }
     base = base_values.get(category, 500)
     # Adjust based on confidence

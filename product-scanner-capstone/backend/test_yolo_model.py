@@ -1,6 +1,5 @@
 """
 YOLO Model Test Script
-Run this to verify your YOLO model is working correctly before integrating with Flutter
 """
 
 import os
