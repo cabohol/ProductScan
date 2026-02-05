@@ -287,31 +287,52 @@ class _UserProfilePageState extends State<UserProfilePage> {
       child: Container(
         height: 110,
         padding: const EdgeInsets.only(top: 20, left: 20, right: 20, bottom: 20),
-        decoration: BoxDecoration(
+          decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF005461), Color(0xFF0C7779), Color(0xFF14A9A8)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(50),
-            bottomRight: Radius.circular(70),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            'PROFILE',
-              style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'Syne',
-              fontSize: 36,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 1.3,
+              colors: [
+                Color(0xFF005461),
+                Color(0xFF0C7779),
+                Color(0xFF14A9A8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(50),
+              bottomRight: Radius.circular(70),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Divider(
+                  color: Colors.white,
+                  thickness: 1,
+                  endIndent: 10, 
+                ),
+              ),
+              Text(
+                'PROFILE',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Syne',
+                  fontSize: 36,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1.3,
+                ),
+              ),
+              Expanded(
+                child: Divider(
+                  color: Colors.white,
+                  thickness: 1,
+                  indent: 10, 
+                ),
+              ),
+            ],
           ),
         ),
       ),
-    ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Column(

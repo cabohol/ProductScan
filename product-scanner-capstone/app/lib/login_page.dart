@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_service.dart';
 
 class LoginPage extends StatefulWidget {
@@ -13,15 +14,37 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
-  
+
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _rememberMe = false; 
 
-  // Velora Color Palette
+  // Color Palette
   static const Color primaryDark = Color(0xFF005461);
   static const Color primaryMedium = Color(0xFF0C7779);
   static const Color primaryLight = Color(0xFF249E94);
-  static const Color accent = Color(0xFF3BC1A8);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  // Load saved credentials if remember_me is true
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email');
+    final password = prefs.getString('password');
+    final remember = prefs.getBool('remember_me') ?? false;
+
+    if (remember && email != null && password != null) {
+      setState(() {
+        _emailController.text = email;
+        _passwordController.text = password;
+        _rememberMe = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -30,85 +53,101 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
- Future<void> _handleLogin() async {
-  if (!_formKey.currentState!.validate()) return;
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    await _authService.signIn(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          elevation: 6,
-          backgroundColor: const Color(0xFF249E94), 
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          duration: const Duration(seconds: 4),
-          content: Row(
-            children: const [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Login successful!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+    try {
+      await _authService.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
 
-      Navigator.pushReplacementNamed(context, '/home');
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          elevation: 6,
-          backgroundColor: Colors.red.shade600,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Login failed: ${e.toString()}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setString('email', _emailController.text.trim());
+        await prefs.setString('password', _passwordController.text);
+        await prefs.setBool('remember_me', true);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            elevation: 6,
+            backgroundColor: const Color(0xFF249E94),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            duration: const Duration(seconds: 4),
+            content: Row(
+              children: const [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Login successful!',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
+        );
+
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            elevation: 6,
+            backgroundColor: Colors.red.shade600,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Login failed: ${e.toString()}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-}
 
+  // Logout function to clear credentials
+  Future<void> _logout() async {
+    await _authService.signOut();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('email');
+    await prefs.remove('password');
+    await prefs.setBool('remember_me', false);
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,11 +163,11 @@ class _LoginPageState extends State<LoginPage> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                     colors: [
-                    Color(0xFF005461),
-                    Color(0xFF0C7779).withOpacity(0.8),
-                    Color(0xFF14A9A8),
-                  ],
+                    colors: [
+                      primaryDark,
+                      primaryMedium.withOpacity(0.8),
+                      primaryLight,
+                    ],
                   ),
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(40),
@@ -136,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 50, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 24),
                   child: Column(
                     children: [
                       Container(
@@ -152,9 +191,8 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      // App Name
                       const Text(
-                        "VELORA",
+                        "ProductScan",
                         style: TextStyle(
                           fontFamily: 'Syne',
                           fontSize: 38,
@@ -187,11 +225,9 @@ class _LoginPageState extends State<LoginPage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const SizedBox(height: 1),
-
-                      // Title
                       const Text(
                         "Welcome Back!",
-                          style: TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Syne',
                           fontSize: 25,
                           fontWeight: FontWeight.bold,
@@ -202,12 +238,8 @@ class _LoginPageState extends State<LoginPage> {
                       Text(
                         "Sign in to continue",
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                       ),
-
                       const SizedBox(height: 25),
 
                       // EMAIL
@@ -220,7 +252,7 @@ class _LoginPageState extends State<LoginPage> {
                           hintStyle: TextStyle(color: primaryMedium),
                           prefixIcon: Icon(Icons.email_outlined, color: primaryMedium),
                           filled: true,
-                          fillColor: Color(0xFFE8F5F5),
+                          fillColor: const Color(0xFFE8F5F5),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -233,15 +265,11 @@ class _LoginPageState extends State<LoginPage> {
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: primaryMedium, width: 1.5),
                           ),
-                          contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
                         ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!value.contains('@')) {
-                            return 'Please enter a valid email';
-                          }
+                          if (value == null || value.isEmpty) return 'Please enter your email';
+                          if (!value.contains('@')) return 'Please enter a valid email';
                           return null;
                         },
                       ),
@@ -262,14 +290,10 @@ class _LoginPageState extends State<LoginPage> {
                               _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                               color: primaryMedium,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
+                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                           ),
                           filled: true,
-                          fillColor: Color(0xFFE8F5F5),
+                          fillColor: const Color(0xFFE8F5F5),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -282,37 +306,30 @@ class _LoginPageState extends State<LoginPage> {
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: primaryMedium, width: 1.5),
                           ),
-                          contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
                         ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          if (value.length < 6) {
-                            return 'Password must be at least 6 characters';
-                          }
+                          if (value == null || value.isEmpty) return 'Please enter your password';
+                          if (value.length < 6) return 'Password must be at least 6 characters';
                           return null;
                         },
                       ),
 
                       const SizedBox(height: 8),
 
-                      // Forgot Password
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/forgot-password');
-                          },
-                          child: Text(
-                            'Forgot Password?',
-                            style: TextStyle(
-                              color: primaryDark,
-                              fontFamily: 'Syne',
-                              fontSize: 17,
-                            ),
+                      // REMEMBER ME
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _rememberMe,
+                            activeColor: primaryDark,
+                            onChanged: (value) => setState(() => _rememberMe = value ?? false),
                           ),
-                        ),
+                          const Text(
+                            'Remember Me',
+                            style: TextStyle(fontFamily: 'Syne', fontSize: 15),
+                          ),
+                        ],
                       ),
 
                       const SizedBox(height: 20),
@@ -344,11 +361,7 @@ class _LoginPageState extends State<LoginPage> {
                                   mainAxisSize: MainAxisSize.min,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: const [
-                                    Icon(
-                                      Icons.login_rounded,
-                                      size: 18,
-                                      color: Colors.white,
-                                    ),
+                                    Icon(Icons.login_rounded, size: 18, color: Colors.white),
                                     SizedBox(width: 10),
                                     Text(
                                       "LOG IN",
@@ -371,37 +384,26 @@ class _LoginPageState extends State<LoginPage> {
                       Row(
                         children: [
                           Expanded(child: Divider(color: Colors.grey[300])),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'OR',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: Text('OR', style: TextStyle(color: Colors.grey)),
                           ),
                           Expanded(child: Divider(color: Colors.grey[300])),
                         ],
                       ),
-
                       const SizedBox(height: 10),
 
-                      // Sign Up Link
                       Center(
                         child: GestureDetector(
-                          onTap: () {
-                            Navigator.pushNamed(context, '/register');
-                          },
+                          onTap: () => Navigator.pushNamed(context, '/register'),
                           child: Text.rich(
                             TextSpan(
                               text: "Don't have an account? ",
                               style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                              children: [
+                              children: const [
                                 TextSpan(
                                   text: "Sign Up",
-                                  style: TextStyle(
-                                    color: Color(0xFF0D7377),
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'Syne',
-                                  ),
+                                  style: TextStyle(color: Color(0xFF0D7377), fontWeight: FontWeight.bold, fontFamily: 'Syne'),
                                 ),
                               ],
                             ),

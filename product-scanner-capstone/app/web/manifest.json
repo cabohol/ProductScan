@@ -1,6 +1,6 @@
 {
-    "name": "app",
-    "short_name": "app",
+    "name": "ProductScan",
+    "short_name": "ProductScan",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

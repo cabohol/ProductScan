@@ -20,6 +20,25 @@ class _HomePageState extends State<HomePage> {
     {'image': 'assets/images/j4.jpg', 'type': 'Bracelet'},
   ];
 
+  final List<Map<String, String>> jewelryTips = [
+  {
+    'title': 'Avoid Water & Chemicals',
+    'description': 'Keep your jewelry away from water, perfumes, and cleaning chemicals to prevent tarnishing and damage.'
+  },
+  {
+    'title': 'Store Properly',
+    'description': 'Store jewelry in individual boxes or pouches to avoid scratches and tangles.'
+  },
+  {
+    'title': 'Clean Regularly',
+    'description': 'Use a soft cloth to gently clean your jewelry after wearing to maintain shine.'
+  },
+  {
+    'title': 'Handle with Care',
+    'description': 'Remove jewelry during physical activities or when sleeping to prevent bending or breakage.'
+  },
+];
+
   void _onItemTapped(int index) {
     if (index == 1) {
       // Scan button
@@ -49,7 +68,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Container(
               height: 200,
-              padding: const EdgeInsets.only(top: 20, left: 24, right: 24, bottom: 20),
+              padding: const EdgeInsets.only(top: 10, left: 24, right: 24, bottom: 20),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF005461), Color(0xFF0C7779), Color(0xFF14A9A8)],
@@ -57,7 +76,7 @@ class _HomePageState extends State<HomePage> {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(50),
+                  bottomLeft: Radius.circular(60),
                   bottomRight: Radius.circular(70),
                 ),
               ),
@@ -71,13 +90,13 @@ class _HomePageState extends State<HomePage> {
                     children: const [
                       SizedBox(height: 20),
                       Text(
-                        'Velora',
+                        'ProductScan',
                         style: TextStyle(
                           color: Colors.white,
                           fontFamily: 'Syne',
-                          fontSize: 46,
+                          fontSize: 28,
                           fontWeight: FontWeight.w500,
-                          letterSpacing: 1.7,
+                          letterSpacing: 1.5,
                         ),
                       ),
                     ],
@@ -412,7 +431,152 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              
+              const SizedBox(height: 32),
+
+              // Jewelry Care Tips Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Jewelry Care Tips',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF005461),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ListView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      itemCount: jewelryTips.length,
+                      itemBuilder: (context, index) {
+                        final tip = jewelryTips[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: InkWell(
+                            onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => Dialog(
+                                backgroundColor: Colors.transparent, 
+                                child: Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF0C7779), Color(0xFF14A9A8)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Title
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        child: Text(
+                                          tip['title']!,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      // Description
+                                      Text(
+                                        tip['description']!,
+                                        textAlign: TextAlign.justify,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.white70,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: const Color(0xFF0C7779),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(vertical: 14),
+                                          ),
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: const Text(
+                                            'Close',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 1.1,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFF0C7779), width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      tip['title']!,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF0C7779),
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.info_outline,
+                                    color: Color(0xFF0C7779),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -421,63 +585,64 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Quick Action Card
-  Widget _buildQuickActionCard({
-    required IconData icon,
-    required String title,
-    required Gradient gradient,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AspectRatio(
-        aspectRatio: 1.35,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+// Quick Action Card
+Widget _buildQuickActionCard({
+  required IconData icon,
+  required String title,
+  required Gradient gradient,
+  required VoidCallback onTap,
+}) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(16),
+    child: AspectRatio(
+      aspectRatio: 1.35,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center, 
+          crossAxisAlignment: CrossAxisAlignment.center, 
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 28,
-                ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 28,
               ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                  letterSpacing: 1.1
-                ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+                letterSpacing: 1.1,
               ),
-            ],
-          ),
+              textAlign: TextAlign.center, 
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // Bottom Navigation Bar
   Widget _buildBottomNavigationBar() {

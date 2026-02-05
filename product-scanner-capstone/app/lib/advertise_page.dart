@@ -25,11 +25,11 @@ class AdvertisePage extends StatelessWidget {
           ),
           content: const SingleChildScrollView(
             child: Text(
-              "By continuing, you agree to Velora’s Terms & Conditions.\n\n"
+              "By continuing, you agree to ProductScan’s Terms & Conditions.\n\n"
               "• Your data is securely handled\n"
               "• You agree to our privacy policy\n"
               "• Content is for personal use only\n\n"
-              "Thank you for choosing Velora.",
+              "Thank you for choosing ProductScan.",
               style: TextStyle(fontSize: 18, height: 1.5),
             ),
           ),
@@ -88,21 +88,21 @@ class AdvertisePage extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(height: 1),
 
                 // App Name
                 const Text(
-                  "VELORA",
+                  "ProductScan",
                   style: TextStyle(
                     fontFamily: 'Syne',
-                    fontSize: 42,
+                    fontSize: 40,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    letterSpacing: 5,
+                    letterSpacing: 6,
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
 
                 Text(
                   "Luxury that speaks for you",
