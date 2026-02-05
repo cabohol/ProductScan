@@ -37,7 +37,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   void _onItemTapped(int index) {
     if (index == 1) {
-      Navigator.pushNamed(context, '/jewel_scan');
+      Navigator.pushNamed(context, '/scan');
     } else if (index == 0) {
       Navigator.pushReplacementNamed(context, '/home');
     }

@@ -73,7 +73,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
     if (index == 0) {
       Navigator.pushReplacementNamed(context, '/home');
     } else if (index == 2) {
-      Navigator.pushReplacementNamed(context, '/profile');
+      Navigator.pushReplacementNamed(context, '/user_profile');
     }
   }
 

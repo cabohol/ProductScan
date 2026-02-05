@@ -41,7 +41,7 @@ class _HomePageState extends State<HomePage> {
   void _onItemTapped(int index) {
     if (index == 1) {
       // Scan button
-      Navigator.pushNamed(context, '/jewel_scan');
+      Navigator.pushNamed(context, '/scan');
     } else if (index == 2) {
       // Profile button
       Navigator.pushNamed(context, '/user_profile');
