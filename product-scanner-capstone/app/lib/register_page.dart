@@ -158,7 +158,7 @@ Future<void> _handleRegister() async {
                     ),
                     SizedBox(height: 20),
                     Text(
-                      'VELORA',
+                      'PRODUCTSCAN',
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -199,7 +199,7 @@ Future<void> _handleRegister() async {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Join Velora to start scanning and\ndiscovering jewelry',
+                        'Join ProductScan to start scanning and\ndiscovering jewelry',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey[600],

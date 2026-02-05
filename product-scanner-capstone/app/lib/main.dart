@@ -6,6 +6,7 @@ import 'register_page.dart';
 import 'login_page.dart';
 import 'home_page.dart';
 import 'forgotpassword_page.dart';
+import 'user_profile.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +28,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Velora',
+      title: 'ProductScan',
       theme: ThemeData(
         fontFamily: 'Syne',
         colorScheme: ColorScheme.fromSeed(
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
         '/home': (context) => const HomePage(),
         '/forgot-password': (context) => const ForgotPasswordPage(),
+        '/user_profile': (context) => UserProfilePage(),
       },
     );
   }
