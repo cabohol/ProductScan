@@ -23,7 +23,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
   late Animation<double> _scanAnimation;
   
   // API integration
- final String _apiBaseUrl = 'http://192.168.1.9:5000'; 
+  final String _apiBaseUrl = 'https://jewelry-scanner-api.onrender.com'; 
   bool _isAnalyzing = false;
   Map<String, dynamic>? _analysisResult;
 

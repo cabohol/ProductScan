@@ -17,7 +17,7 @@ def test_model():
     # 1. Check model file exists
     model_paths = [
         'yolo/models/best.pt',
-        'yolo/models/best(1).pt',
+        'yolo/models/best1.pt',
         'models/best.pt',
         'best.pt',
     ]
