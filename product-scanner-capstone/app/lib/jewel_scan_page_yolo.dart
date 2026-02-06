@@ -249,7 +249,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
  
           const SizedBox(height: 30),
  
-          // Product Info - Now with YOLO results
+          // Product Info - YOLO results
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -366,7 +366,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
   }
 
   void _saveResult() {
-    // TODO: Implement saving to database or local storage
+    // Implement saving to database or local storage
     if (_analysisResult != null) {
       debugPrint('Saving result: $_analysisResult');
       ScaffoldMessenger.of(context).showSnackBar(
