@@ -127,92 +127,56 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
   });
 
   try {
-    print(' Starting image analysis...');
-    print(' API URL: $_apiBaseUrl/predict');
-    
     var request = http.MultipartRequest(
       'POST',
       Uri.parse('$_apiBaseUrl/predict'),
     );
 
-    // Add image file
     request.files.add(
       await http.MultipartFile.fromPath('image', imageFile.path),
     );
 
-    print('Sending request...');
-    
-    // Send request with timeout
-    var streamedResponse = await request.send().timeout(
-      const Duration(seconds: 30),
-      onTimeout: () {
-        throw Exception('Request timeout - API not responding');
-      },
-    );
-    
-    print('Response status: ${streamedResponse.statusCode}');
-    
+    var streamedResponse = await request.send();
     var response = await http.Response.fromStream(streamedResponse);
-    
-    print(' Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       var jsonResponse = json.decode(response.body);
-      print(' Success: $jsonResponse');
       
       setState(() {
-        _analysisResult = jsonResponse;
+        _analysisResult = {
+          'product_name': jsonResponse['product_name'] ?? 'Unknown',
+          'category': jsonResponse['yolo_label'] ?? jsonResponse['category'],
+          'confidence': jsonResponse['confidence'] ?? 0.0,
+          'authenticity': jsonResponse['authenticity'] ?? 'Unknown',
+          'estimated_value': jsonResponse['estimated_value'] ?? 'N/A',
+        };
         _isAnalyzing = false;
       });
     } else {
       setState(() {
         _isAnalyzing = false;
       });
-      _showError('Failed to analyze image: ${response.statusCode}\n${response.body}');
+      _showError('Failed to analyze: ${response.statusCode}');
     }
   } catch (e) {
-    print(' Error: $e');
     setState(() {
       _isAnalyzing = false;
     });
-    _showError('Error connecting to API: $e');
+    _showError('Error: $e');
   }
 }
 
     void _showError(String message) {
-    // Show in console
-    debugPrint('ERROR: $message');
-    
-    // Show SnackBar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
-        duration: const Duration(seconds: 5), // Longer duration
-        action: SnackBarAction(
-          label: 'OK',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
-      ),
-    );
-    
-    // Also show dialog for critical errors
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
+ 
   void _showScanResult() {
     showModalBottomSheet(
       context: context,
