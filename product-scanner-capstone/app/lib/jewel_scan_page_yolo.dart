@@ -106,7 +106,10 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
 
   Future<void> _pickFromGallery() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await picker.pickImage(
+    source: ImageSource.gallery,
+    imageQuality: 70,
+  );
  
     if (image != null) {
       setState(() {
@@ -119,51 +122,93 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
   }
 
   Future<void> _analyzeImage(File imageFile) async {
-    setState(() {
-      _isAnalyzing = true;
-    });
+  setState(() {
+    _isAnalyzing = true;
+  });
 
-    try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$_apiBaseUrl/predict'),
-      );
+  try {
+    print(' Starting image analysis...');
+    print(' API URL: $_apiBaseUrl/predict');
+    
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$_apiBaseUrl/predict'),
+    );
 
-      // Add image file
-      request.files.add(
-        await http.MultipartFile.fromPath('image', imageFile.path),
-      );
+    // Add image file
+    request.files.add(
+      await http.MultipartFile.fromPath('image', imageFile.path),
+    );
 
-      // Send request
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
+    print('Sending request...');
+    
+    // Send request with timeout
+    var streamedResponse = await request.send().timeout(
+      const Duration(seconds: 30),
+      onTimeout: () {
+        throw Exception('Request timeout - API not responding');
+      },
+    );
+    
+    print('Response status: ${streamedResponse.statusCode}');
+    
+    var response = await http.Response.fromStream(streamedResponse);
+    
+    print(' Response body: ${response.body}');
 
-      if (response.statusCode == 200) {
-        var jsonResponse = json.decode(response.body);
-        setState(() {
-          _analysisResult = jsonResponse;
-          _isAnalyzing = false;
-        });
-      } else {
-        setState(() {
-          _isAnalyzing = false;
-        });
-        _showError('Failed to analyze image: ${response.statusCode}');
-      }
-    } catch (e) {
+    if (response.statusCode == 200) {
+      var jsonResponse = json.decode(response.body);
+      print(' Success: $jsonResponse');
+      
+      setState(() {
+        _analysisResult = jsonResponse;
+        _isAnalyzing = false;
+      });
+    } else {
       setState(() {
         _isAnalyzing = false;
       });
-      _showError('Error connecting to YOLO API: $e');
+      _showError('Failed to analyze image: ${response.statusCode}\n${response.body}');
     }
+  } catch (e) {
+    print(' Error: $e');
+    setState(() {
+      _isAnalyzing = false;
+    });
+    _showError('Error connecting to API: $e');
   }
+}
 
-  void _showError(String message) {
+    void _showError(String message) {
+    // Show in console
+    debugPrint('ERROR: $message');
+    
+    // Show SnackBar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 5), // Longer duration
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {},
+        ),
+      ),
+    );
+    
+    // Also show dialog for critical errors
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
