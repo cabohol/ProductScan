@@ -45,10 +45,10 @@ packages:
     dependency: transitive
     description:
       name: archive
-      sha256: "2fde1607386ab523f7a36bb3e7edb43bd58e6edaf2ffb29d8a6d578b297fdbbd"
+      sha256: cb6a278ef2dbb298455e1a713bda08524a175630ec643a242c399c932a0a1f7d
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.7"
+    version: "3.6.1"
   async:
     dependency: transitive
     description:
@@ -283,6 +283,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_tflite:
+    dependency: "direct main"
+    description:
+      name: flutter_tflite
+      sha256: "0d6b622af0fe90d92bd4d9bd28b98c3b213217f36ccb7b444d7104a742b03363"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -452,18 +460,18 @@ packages:
     dependency: "direct main"
     description:
       name: image
-      sha256: "492bd52f6c4fbb6ee41f781ff27765ce5f627910e1e0cbecfa3d9add5562604c"
+      sha256: "8e9d133755c3e84c73288363e6343157c383a0c6c56fc51afcc5d4d7180306d6"
       url: "https://pub.dev"
     source: hosted
-    version: "4.7.2"
+    version: "3.3.0"
   image_picker:
     dependency: "direct main"
     description:
       name: image_picker
-      sha256: "784210112be18ea55f69d7076e2c656a4e24949fa9e76429fe53af0c0f4fa320"
+      sha256: b6951e25b795d053a6ba03af5f710069c99349de9341af95155d52665cb4607c
       url: "https://pub.dev"
     source: hosted
-    version: "1.2.1"
+    version: "0.8.9"
   image_picker_android:
     dependency: transitive
     description:
@@ -476,10 +484,10 @@ packages:
     dependency: transitive
     description:
       name: image_picker_for_web
-      sha256: "66257a3191ab360d23a55c8241c91a6e329d31e94efa7be9cf7a212e65850214"
+      sha256: "98f50d6b9f294c8ba35e25cc0d13b04bfddd25dbc8d32fa9d566a6572f2c081c"
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.1"
+    version: "2.1.12"
   image_picker_ios:
     dependency: transitive
     description:
@@ -712,14 +720,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
-  posix:
-    dependency: transitive
-    description:
-      name: posix
-      sha256: "6323a5b0fa688b6a010df4905a56b00181479e6d10534cecfecede2aa55add61"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.0.3"
   postgrest:
     dependency: transitive
     description:
@@ -744,14 +744,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
-  quiver:
-    dependency: transitive
-    description:
-      name: quiver
-      sha256: ea0b925899e64ecdfbf9c7becb60d5b50e706ade44a85b2363be2a22d88117d2
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.2.2"
   realtime_client:
     dependency: transitive
     description:
@@ -973,14 +965,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.7"
-  tflite_flutter:
-    dependency: "direct main"
-    description:
-      name: tflite_flutter
-      sha256: ffb8651fdb116ab0131d6dc47ff73883e0f634ad1ab12bb2852eef1bbeab4a6a
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.10.4"
   typed_data:
     dependency: transitive
     description:
