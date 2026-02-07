@@ -31,7 +31,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
 void initState() {
   super.initState();
   _initializeCamera();
-  _initializeTFLite(); 
+  _initializeTFLite();
   
   _scanAnimationController = AnimationController(
     vsync: this,
@@ -43,13 +43,17 @@ void initState() {
   );
 }
 
-// ADD THIS NEW METHOD
 Future<void> _initializeTFLite() async {
   try {
-  await _onnxService.loadModel();  // Change this
+    await _onnxService.loadModel();
     print('✅ ONNX model ready!');
+    
+    // TEST THE MODEL
+    await _onnxService.testModel();
+    
   } catch (e) {
     print('❌ Failed to load ONNX: $e');
+    print('❌ Stack trace: ${StackTrace.current}');
   }
 }
 
@@ -139,17 +143,28 @@ Future<void> _initializeTFLite() async {
   });
 
   try {
-    print('🔍 Analyzing image with TFLite...');
+    print('\n🔍 ============ ANALYSIS START ============');
+    print('📁 Image path: ${imageFile.path}');
+    print('📁 Image exists: ${await imageFile.exists()}');
+    print('📁 Image size: ${await imageFile.length()} bytes');
     
-    // Run LOCAL inference (NO INTERNET!)
-    var result = await _onnxService.predict(imageFile); 
+    // Run inference
+    var result = await _onnxService.predict(imageFile);
+    
+    print('📊 Result: $result');
+    print('🔍 ============ ANALYSIS END ============\n');
     
     if (result != null) {
       setState(() {
         _analysisResult = result;
         _isAnalyzing = false;
       });
-      print(' Analysis complete!');
+      
+      if (result['success'] == true) {
+        print('✅ Detection successful!');
+      } else {
+        print('⚠️ No detection or low confidence');
+      }
     } else {
       setState(() {
         _isAnalyzing = false;
@@ -157,13 +172,15 @@ Future<void> _initializeTFLite() async {
       _showError('Failed to analyze image');
     }
     
-  } catch (e) {
-    print(' Error: $e');
+  } catch (e, stackTrace) {
+    print('❌ Error: $e');
+    print('❌ Stack: $stackTrace');
     setState(() {
       _isAnalyzing = false;
     });
     _showError('Error analyzing image: $e');
   }
+
 }
 
     void _showError(String message) {
