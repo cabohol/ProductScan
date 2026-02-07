@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../services/tflite_service.dart';
+import 'services/onnx_service.dart';
 
 class JewelScanPage extends StatefulWidget {
   const JewelScanPage({super.key});
@@ -23,7 +23,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
   late AnimationController _scanAnimationController;
   late Animation<double> _scanAnimation;
   
- final TFLiteService _tfliteService = TFLiteService();
+ final OnnxService _onnxService = OnnxService();
  bool _isAnalyzing = false;
  Map<String, dynamic>? _analysisResult; 
 
@@ -46,10 +46,10 @@ void initState() {
 // ADD THIS NEW METHOD
 Future<void> _initializeTFLite() async {
   try {
-    await _tfliteService.loadModel();
-    print(' TFLite model ready!');
+  await _onnxService.loadModel();  // Change this
+    print('✅ ONNX model ready!');
   } catch (e) {
-    print(' Failed to load TFLite: $e');
+    print('❌ Failed to load ONNX: $e');
   }
 }
 
@@ -76,7 +76,7 @@ Future<void> _initializeTFLite() async {
 
   @override
   void dispose() {
-    _tfliteService.dispose();  
+    _onnxService.dispose();  
     _cameraController?.dispose();
     _scanAnimationController.dispose();
     super.dispose();
@@ -142,7 +142,7 @@ Future<void> _initializeTFLite() async {
     print('🔍 Analyzing image with TFLite...');
     
     // Run LOCAL inference (NO INTERNET!)
-    var result = await _tfliteService.predict(imageFile);
+    var result = await _onnxService.predict(imageFile); 
     
     if (result != null) {
       setState(() {
