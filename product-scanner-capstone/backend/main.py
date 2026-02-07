@@ -1,15 +1,14 @@
-import os
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 from PIL import Image
 import io
 import numpy as np
 from ultralytics import YOLO
+import gradio as gr
 
 app = FastAPI()
 
-# CORS for Flutter
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,13 +17,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load YOLO model
-MODEL_PATH = os.getenv("MODEL_PATH", "yolo/models/best1.pt")
-model = YOLO(MODEL_PATH)
+# Load model
+model = YOLO('best1.pt')
+
+JEWELRY_CATEGORIES = {
+    0: 'Ring',
+    1: 'Necklace',
+    2: 'Earring',
+}
 
 @app.get("/")
-def root():
-    return {"message": "YOLO Jewelry Scanner API is running on Render!"}
+def read_root():
+    return {"message": "Jewelry Scanner API - Running on Hugging Face!"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "model_loaded": True}
 
 @app.post("/predict")
 async def predict(image: UploadFile = File(...)):
@@ -33,13 +41,13 @@ async def predict(image: UploadFile = File(...)):
         pil_image = Image.open(io.BytesIO(contents))
         img_array = np.array(pil_image)
         
-        results = model(img_array)
+        results = model(img_array, conf=0.25)
         
         if len(results) > 0 and len(results[0].boxes) > 0:
             box = results[0].boxes[0]
             class_id = int(box.cls[0])
             confidence = float(box.conf[0])
-            class_name = results[0].names[class_id]
+            class_name = JEWELRY_CATEGORIES.get(class_id, f'Class_{class_id}')
             
             return {
                 "product_name": class_name,
@@ -54,13 +62,17 @@ async def predict(image: UploadFile = File(...)):
                 "product_name": "No jewelry detected",
                 "category": "Unknown",
                 "confidence": 0.0,
-                "authenticity": "Not detected",
-                "estimated_value": "N/A",
             }
             
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"error": str(e)}
 
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+# Mount Gradio app for UI
+io = gr.Interface(
+    fn=lambda img: model(np.array(img)),
+    inputs=gr.Image(type="pil"),
+    outputs=gr.Image(),
+    title="Jewelry Scanner"
+)
+
+app = gr.mount_gradio_app(app, io, path="/")

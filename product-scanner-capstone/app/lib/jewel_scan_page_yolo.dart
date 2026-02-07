@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/tflite_service.dart';
 
 class JewelScanPage extends StatefulWidget {
   const JewelScanPage({super.key});
@@ -22,24 +23,35 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
   late AnimationController _scanAnimationController;
   late Animation<double> _scanAnimation;
   
-  // API integration
-  final String _apiBaseUrl = 'https://jewelry-scanner-api.onrender.com'; 
-  bool _isAnalyzing = false;
-  Map<String, dynamic>? _analysisResult;
+ final TFLiteService _tfliteService = TFLiteService();
+ bool _isAnalyzing = false;
+ Map<String, dynamic>? _analysisResult; 
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeCamera();
-    _scanAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
- 
-    _scanAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _scanAnimationController, curve: Curves.easeInOut),
-    );
+ @override
+void initState() {
+  super.initState();
+  _initializeCamera();
+  _initializeTFLite(); 
+  
+  _scanAnimationController = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 2),
+  )..repeat(reverse: true);
+  
+  _scanAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    CurvedAnimation(parent: _scanAnimationController, curve: Curves.easeInOut),
+  );
+}
+
+// ADD THIS NEW METHOD
+Future<void> _initializeTFLite() async {
+  try {
+    await _tfliteService.loadModel();
+    print(' TFLite model ready!');
+  } catch (e) {
+    print(' Failed to load TFLite: $e');
   }
+}
 
   Future<void> _initializeCamera() async {
     try {
@@ -64,11 +76,11 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
 
   @override
   void dispose() {
+    _tfliteService.dispose();  
     _cameraController?.dispose();
     _scanAnimationController.dispose();
     super.dispose();
   }
-
   void _onItemTapped(int index) {
     if (index == 0) {
       Navigator.pushReplacementNamed(context, '/home');
@@ -121,48 +133,36 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
     }
   }
 
-  Future<void> _analyzeImage(File imageFile) async {
+ Future<void> _analyzeImage(File imageFile) async {
   setState(() {
     _isAnalyzing = true;
   });
 
   try {
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('$_apiBaseUrl/predict'),
-    );
-
-    request.files.add(
-      await http.MultipartFile.fromPath('image', imageFile.path),
-    );
-
-    var streamedResponse = await request.send();
-    var response = await http.Response.fromStream(streamedResponse);
-
-    if (response.statusCode == 200) {
-      var jsonResponse = json.decode(response.body);
-      
+    print('🔍 Analyzing image with TFLite...');
+    
+    // Run LOCAL inference (NO INTERNET!)
+    var result = await _tfliteService.predict(imageFile);
+    
+    if (result != null) {
       setState(() {
-        _analysisResult = {
-          'product_name': jsonResponse['product_name'] ?? 'Unknown',
-          'category': jsonResponse['yolo_label'] ?? jsonResponse['category'],
-          'confidence': jsonResponse['confidence'] ?? 0.0,
-          'authenticity': jsonResponse['authenticity'] ?? 'Unknown',
-          'estimated_value': jsonResponse['estimated_value'] ?? 'N/A',
-        };
+        _analysisResult = result;
         _isAnalyzing = false;
       });
+      print(' Analysis complete!');
     } else {
       setState(() {
         _isAnalyzing = false;
       });
-      _showError('Failed to analyze: ${response.statusCode}');
+      _showError('Failed to analyze image');
     }
+    
   } catch (e) {
+    print(' Error: $e');
     setState(() {
       _isAnalyzing = false;
     });
-    _showError('Error: $e');
+    _showError('Error analyzing image: $e');
   }
 }
 

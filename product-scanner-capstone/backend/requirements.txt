@@ -8,3 +8,4 @@ ultralytics==8.1.0
 torch==2.1.0
 torchvision==0.16.0
 pydantic==2.5.3
+gradio==4.16.0
