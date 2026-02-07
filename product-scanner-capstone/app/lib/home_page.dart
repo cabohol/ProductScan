@@ -60,60 +60,58 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(200),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              height: 200,
-              padding: const EdgeInsets.only(top: 10, left: 24, right: 24, bottom: 20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF005461), Color(0xFF0C7779), Color(0xFF14A9A8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(60),
-                  bottomRight: Radius.circular(70),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Column(
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(200),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ClipRRect(
+                child: Container(
+                  height: 210,
+                  padding: const EdgeInsets.only(top: 10, left: 24, right: 24, bottom: 20),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF005461), Color(0xFF0C7779), Color(0xFF14A9A8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start, 
                     crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      SizedBox(height: 20),
-                      Text(
-                        'ProductScan',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'Syne',
-                          fontSize: 28,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 1.5,
-                        ),
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          SizedBox(height: 20),
+                          Text(
+                            'ProductScan',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'Syne',
+                              fontSize: 28,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-            Positioned(
-              right: -70,
-              bottom: -100,
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 340,
+              Positioned(
+                right: -70,
+                bottom: -100,
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  height: 340,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24.0),
@@ -197,7 +195,60 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 30),
+
+                // Quick Actions Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Quick Actions',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF005461),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildQuickActionCard(
+                            icon: Icons.qr_code_scanner,
+                            title: 'Scan Jewelry',
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF0C7779), Color(0xFF14A9A8)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            onTap: () => Navigator.pushNamed(context, '/scan'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildQuickActionCard(
+                            icon: Icons.history,
+                            title: 'Scan History',
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF005461),
+                                const Color(0xFF0C7779).withOpacity(0.9),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            onTap: () => Navigator.pushNamed(context, '/history'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 40),
 
               // Featured Jewelry Section
               Padding(
@@ -377,61 +428,8 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
               ),
-
-              const SizedBox(height: 25),
-
-              // Quick Actions Section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Quick Actions',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF005461),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildQuickActionCard(
-                            icon: Icons.qr_code_scanner,
-                            title: 'Scan Jewelry',
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF0C7779), Color(0xFF14A9A8)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            onTap: () => Navigator.pushNamed(context, '/jewel_scan'),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildQuickActionCard(
-                            icon: Icons.history,
-                            title: 'Scan History',
-                            gradient: LinearGradient(
-                              colors: [
-                                const Color(0xFF005461),
-                                const Color(0xFF0C7779).withOpacity(0.9),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            onTap: () {},
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 27),
 
               // Jewelry Care Tips Section
               Padding(
