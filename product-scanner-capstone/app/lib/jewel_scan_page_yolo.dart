@@ -23,39 +23,58 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
   late AnimationController _scanAnimationController;
   late Animation<double> _scanAnimation;
   
- final OnnxService _onnxService = OnnxService();
- bool _isAnalyzing = false;
- Map<String, dynamic>? _analysisResult; 
+  final OnnxService _onnxService = OnnxService();
+  bool _isAnalyzing = false;
+  bool _isModelLoading = true; // ← ADD THIS
+  Map<String, dynamic>? _analysisResult;
 
  @override
-void initState() {
-  super.initState();
-  _initializeCamera();
-  _initializeTFLite();
-  
-  _scanAnimationController = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 2),
-  )..repeat(reverse: true);
-  
-  _scanAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-    CurvedAnimation(parent: _scanAnimationController, curve: Curves.easeInOut),
-  );
-}
-
-Future<void> _initializeTFLite() async {
-  try {
-    await _onnxService.loadModel();
-    print('✅ ONNX model ready!');
+  void initState() {
+    super.initState();
+    _initializeCamera();
+    _initializeTFLite();
     
-    // TEST THE MODEL
-    await _onnxService.testModel();
+    _scanAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
     
-  } catch (e) {
-    print('❌ Failed to load ONNX: $e');
-    print('❌ Stack trace: ${StackTrace.current}');
+    _scanAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _scanAnimationController, curve: Curves.easeInOut),
+    );
   }
-}
+
+
+ Future<void> _initializeTFLite() async {
+    setState(() {
+      _isModelLoading = true; // ← UPDATE STATE
+    });
+    
+    try {
+      await _onnxService.loadModel();
+      print('✅ ONNX model ready!');
+      
+      // TEST THE MODEL
+      await _onnxService.testModel();
+      
+      setState(() {
+        _isModelLoading = false; // ← MODEL LOADED
+      });
+      
+    } catch (e) {
+      print('❌ Failed to load ONNX: $e');
+      print('❌ Stack trace: ${StackTrace.current}');
+      
+      setState(() {
+        _isModelLoading = false;
+      });
+      
+      // Show error to user
+      if (mounted) {
+        _showError('Failed to load AI model. Please restart the app.');
+      }
+    }
+  }
 
   Future<void> _initializeCamera() async {
     try {
@@ -104,13 +123,19 @@ Future<void> _initializeTFLite() async {
     }
   }
 
-  Future<void> _takePicture() async {
+   Future<void> _takePicture() async {
+    // ← ADD CHECK HERE
+    if (_isModelLoading) {
+      _showError('Please wait, AI model is still loading...');
+      return;
+    }
+    
     if (_cameraController != null && _isCameraInitialized) {
       try {
         final XFile photo = await _cameraController!.takePicture();
         setState(() {
           _scannedImage = File(photo.path);
-          _analysisResult = null; // Reset previous results
+          _analysisResult = null;
         });
         _showScanResult();
         _analyzeImage(_scannedImage!);
@@ -121,16 +146,22 @@ Future<void> _initializeTFLite() async {
   }
 
   Future<void> _pickFromGallery() async {
+    // ← ADD CHECK HERE
+    if (_isModelLoading) {
+      _showError('Please wait, AI model is still loading...');
+      return;
+    }
+    
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
-    source: ImageSource.gallery,
-    imageQuality: 70,
-  );
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
  
     if (image != null) {
       setState(() {
         _scannedImage = File(image.path);
-        _analysisResult = null; // Reset previous results
+        _analysisResult = null;
       });
       _showScanResult();
       _analyzeImage(_scannedImage!);
@@ -444,22 +475,48 @@ Future<void> _initializeTFLite() async {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Camera Preview
-          if (_isCameraInitialized && _cameraController != null)
-            Positioned.fill(
-              child: CameraPreview(_cameraController!),
-            )
-          else
-            const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF14A9A8),
+  return Scaffold(
+    backgroundColor: Colors.black,
+    body: Stack(
+      children: [
+        // Camera Preview
+        if (_isCameraInitialized && _cameraController != null)
+          Positioned.fill(
+            child: CameraPreview(_cameraController!),
+          )
+        else
+          const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF14A9A8),
+            ),
+          ),
+           // ← ADD MODEL LOADING OVERLAY
+        if (_isModelLoading)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.8),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      color: Color(0xFF14A9A8),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Loading AI Model...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
- 
+          ),
+
           // Gradient Overlay
           Positioned.fill(
             child: Container(

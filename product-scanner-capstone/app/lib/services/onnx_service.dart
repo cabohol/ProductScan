@@ -22,7 +22,7 @@ class OnnxService {
 
       // Load model from assets
       final sessionOptions = OrtSessionOptions();
-      const assetFileName = 'assets/best1_clean.onnx';
+      const assetFileName = 'assets/best_final.onnx';
       final rawAssetFile = await rootBundle.load(assetFileName);
       final bytes = rawAssetFile.buffer.asUint8List();
 
