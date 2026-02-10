@@ -486,7 +486,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                       ],
                                     ),
 
-                                    const SizedBox(height: 30),
+                                    const SizedBox(height: 27),
 
                                     // Email Section
                                     Text('Email', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500, fontSize: 15, letterSpacing: 1.2)),
@@ -510,7 +510,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                       ),
                                     ),
                                     
-                                    const SizedBox(height: 30),
+                                    const SizedBox(height: 27),
 
                                     // Address Section
                                     Text('Address', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500, fontSize: 15, letterSpacing: 1.2)),
@@ -564,7 +564,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                       ],
                                     ),
 
-                                    const SizedBox(height: 40),
+                                    const SizedBox(height: 25),
 
                                     // Logout Button
                                     Container(
