@@ -12,10 +12,11 @@ class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _addressController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _authService = AuthService();
-  
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -24,93 +25,94 @@ class _RegisterPageState extends State<RegisterPage> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _addressController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
-Future<void> _handleRegister() async {
-  if (!_formKey.currentState!.validate()) return;
+  Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    await _authService.signUp(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-      metadata: {
-        'name': _nameController.text.trim(),
-      },
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          elevation: 6,
-          backgroundColor: const Color(0xFF249E94),
-          shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          ),
-          duration: const Duration(seconds: 4),
-          content: Row(
-            children: const [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Registration successful!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+    try {
+      await _authService.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        metadata: {
+          'name': _nameController.text.trim(),
+          'address': _addressController.text.trim(),
+        },
       );
 
-      Navigator.pushReplacementNamed(context, '/login');
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          elevation: 6,
-          backgroundColor: Colors.red.shade600,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Registration failed: ${e.toString()}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            elevation: 6,
+            backgroundColor: const Color(0xFF249E94),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            duration: const Duration(seconds: 4),
+            content: Row(
+              children: const [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Registration successful!',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
+        );
+
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            elevation: 6,
+            backgroundColor: Colors.red.shade600,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Registration failed: ${e.toString()}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -127,12 +129,11 @@ Future<void> _handleRegister() async {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                   colors: [
-                    Color(0xFF005461),
-                    Color(0xFF0C7779).withOpacity(0.8),
-                    Color(0xFF14A9A8),
-                  ],
-
+                    colors: [
+                      Color(0xFF005461),
+                      Color(0xFF0C7779).withOpacity(0.8),
+                      Color(0xFF14A9A8),
+                    ],
                   ),
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(30),
@@ -178,7 +179,7 @@ Future<void> _handleRegister() async {
                   ],
                 ),
               ),
-              
+
               // Form Section
               Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -216,7 +217,8 @@ Future<void> _handleRegister() async {
                         decoration: InputDecoration(
                           hintText: 'Full Name',
                           hintStyle: TextStyle(color: Color(0xFF0D7377)),
-                          prefixIcon: Icon(Icons.person_outline, color: Color(0xFF0D7377)),
+                          prefixIcon: Icon(Icons.person_outline,
+                              color: Color(0xFF0D7377)),
                           filled: true,
                           fillColor: Color(0xFFE8F5F5),
                           border: OutlineInputBorder(
@@ -229,9 +231,11 @@ Future<void> _handleRegister() async {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Color(0xFF0D7377), width: 1.5),
+                            borderSide: BorderSide(
+                                color: Color(0xFF0D7377), width: 1.5),
                           ),
-                          contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                          contentPadding: EdgeInsets.symmetric(
+                              vertical: 18, horizontal: 16),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -249,7 +253,8 @@ Future<void> _handleRegister() async {
                         decoration: InputDecoration(
                           hintText: 'Email Address',
                           hintStyle: TextStyle(color: Color(0xFF0D7377)),
-                          prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF0D7377)),
+                          prefixIcon: Icon(Icons.email_outlined,
+                              color: Color(0xFF0D7377)),
                           filled: true,
                           fillColor: Color(0xFFE8F5F5),
                           border: OutlineInputBorder(
@@ -262,9 +267,11 @@ Future<void> _handleRegister() async {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Color(0xFF0D7377), width: 1.5),
+                            borderSide: BorderSide(
+                                color: Color(0xFF0D7377), width: 1.5),
                           ),
-                          contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                          contentPadding: EdgeInsets.symmetric(
+                              vertical: 18, horizontal: 16),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -278,6 +285,44 @@ Future<void> _handleRegister() async {
                       ),
                       SizedBox(height: 16),
 
+                      // Address Field
+                      TextFormField(
+                        controller: _addressController,
+                        keyboardType: TextInputType.streetAddress,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          hintText: 'Address',
+                          hintStyle: TextStyle(color: Color(0xFF0D7377)),
+                          prefixIcon: Icon(Icons.location_on_outlined,
+                              color: Color(0xFF0D7377)),
+                          filled: true,
+                          fillColor: Color(0xFFE8F5F5),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                                color: Color(0xFF0D7377), width: 1.5),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                              vertical: 18, horizontal: 16),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your address';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      SizedBox(height: 16),
+
                       // Password Field
                       TextFormField(
                         controller: _passwordController,
@@ -285,7 +330,8 @@ Future<void> _handleRegister() async {
                         decoration: InputDecoration(
                           hintText: 'Password',
                           hintStyle: TextStyle(color: Color(0xFF0D7377)),
-                          prefixIcon: Icon(Icons.lock_outline, color: Color(0xFF0D7377)),
+                          prefixIcon: Icon(Icons.lock_outline,
+                              color: Color(0xFF0D7377)),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
@@ -294,7 +340,8 @@ Future<void> _handleRegister() async {
                               color: Color(0xFF0D7377),
                             ),
                             onPressed: () {
-                              setState(() => _obscurePassword = !_obscurePassword);
+                              setState(
+                                  () => _obscurePassword = !_obscurePassword);
                             },
                           ),
                           filled: true,
@@ -309,9 +356,11 @@ Future<void> _handleRegister() async {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Color(0xFF0D7377), width: 1.5),
+                            borderSide: BorderSide(
+                                color: Color(0xFF0D7377), width: 1.5),
                           ),
-                          contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                          contentPadding: EdgeInsets.symmetric(
+                              vertical: 18, horizontal: 16),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -332,7 +381,8 @@ Future<void> _handleRegister() async {
                         decoration: InputDecoration(
                           hintText: 'Confirm Password',
                           hintStyle: TextStyle(color: Color(0xFF0D7377)),
-                          prefixIcon: Icon(Icons.lock_outline, color: Color(0xFF0D7377)),
+                          prefixIcon: Icon(Icons.lock_outline,
+                              color: Color(0xFF0D7377)),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscureConfirmPassword
@@ -341,7 +391,8 @@ Future<void> _handleRegister() async {
                               color: Color(0xFF0D7377),
                             ),
                             onPressed: () {
-                              setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                              setState(() => _obscureConfirmPassword =
+                                  !_obscureConfirmPassword);
                             },
                           ),
                           filled: true,
@@ -356,9 +407,11 @@ Future<void> _handleRegister() async {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Color(0xFF0D7377), width: 1.5),
+                            borderSide: BorderSide(
+                                color: Color(0xFF0D7377), width: 1.5),
                           ),
-                          contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                          contentPadding: EdgeInsets.symmetric(
+                              vertical: 18, horizontal: 16),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -390,7 +443,8 @@ Future<void> _handleRegister() async {
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
                                 ),
                               )
                             : Row(
@@ -423,7 +477,8 @@ Future<void> _handleRegister() async {
                         children: [
                           Text(
                             'Already have an account? ',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 14),
                           ),
                           TextButton(
                             onPressed: () {

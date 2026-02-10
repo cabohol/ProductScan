@@ -82,6 +82,20 @@ class AuthService {
     }
   }
 
+  // Update user's address in Supabase
+  Future<void> updateUserAddress(String newAddress) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('No user logged in');
+
+    try {
+      await _supabase.auth.updateUser(
+        UserAttributes(data: {'address': newAddress}),
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // Upload profile picture
   Future<String> uploadProfilePicture(Uint8List imageBytes, String fileName) async {
     final user = _supabase.auth.currentUser;
