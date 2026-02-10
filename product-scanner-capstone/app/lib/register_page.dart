@@ -289,7 +289,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       TextFormField(
                         controller: _addressController,
                         keyboardType: TextInputType.streetAddress,
-                        maxLines: 2,
                         decoration: InputDecoration(
                           hintText: 'Address',
                           hintStyle: TextStyle(color: Color(0xFF0D7377)),
