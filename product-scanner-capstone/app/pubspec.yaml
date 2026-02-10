@@ -50,7 +50,7 @@ flutter:
   assets:
     - assets/images/
     - .env
-    - assets/best_final.onnx
+    - assets/best_cleaned.onnx
     - assets/labels.txt
 
   fonts:

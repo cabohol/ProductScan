@@ -22,7 +22,7 @@ class OnnxService {
 
       // Load model from assets
       final sessionOptions = OrtSessionOptions();
-      const assetFileName = 'assets/best_final.onnx';
+      const assetFileName = 'assets/best_cleaned.onnx';
       final rawAssetFile = await rootBundle.load(assetFileName);
       final bytes = rawAssetFile.buffer.asUint8List();
 
@@ -177,7 +177,7 @@ class OnnxService {
     }
   }
 
-    Map<String, dynamic>? _processOutput(List<OrtValue?>? outputs) {
+  Map<String, dynamic>? _processOutput(List<OrtValue?>? outputs) {
     if (outputs == null || outputs.isEmpty) {
       print('❌ No outputs from model');
       return _noDetectionResult();
@@ -185,85 +185,151 @@ class OnnxService {
 
     try {
       final output = outputs[0];
-      print('📊 Output exists: ${output != null}');
-
       final outputData = output?.value;
-      print('📊 Data type: ${outputData.runtimeType}');
 
       if (outputData is! List) {
         print('❌ Unexpected output format');
         return _noDetectionResult();
       }
 
-      // YOLOv8 format: [1, 7, 8400]
-      // batch_size=1, num_classes+4=7 (3 classes + 4 bbox coords), detections=8400
-      
-      double maxConfidence = 0.0;
-      int maxClass = 0;
-      
-      print('📊 Batch size: ${outputData.length}');
-      
       if (outputData.isEmpty || outputData[0] is! List) {
-        print('❌ Invalid batch format');
         return _noDetectionResult();
       }
 
-      final batch = outputData[0] as List; // Get first batch
-      print('📊 Number of features: ${batch.length}'); // Should be 7
-      
+      final batch = outputData[0] as List;
       if (batch.length < 5) {
-        print('❌ Not enough features in output');
         return _noDetectionResult();
       }
 
-      // YOLOv8 format has detections in columns (transposed)
-      // batch[0-3] = bbox coordinates (x, y, w, h)
-      // batch[4-6] = class scores for 3 classes
-      
       int numDetections = (batch[0] as List).length;
       print('📊 Processing $numDetections detections...');
 
+      // ✅ STRICTER THRESHOLDS
+      const double DETECTION_THRESHOLD = 0.50;
+      const double MINIMUM_CONFIDENCE = 0.65;
+      const int MINIMUM_DETECTIONS = 5;
+      const double CONSENSUS_RATIO = 0.6; // 60% must agree
+
+      // Track detections per class
+      Map<int, List<double>> classDetections = {
+        0: [], // earring
+        1: [], // necklace
+        2: [], // ring
+      };
+
+      Map<int, int> classVotes = {0: 0, 1: 0, 2: 0};
+      int totalValidDetections = 0;
+
+      // Collect all valid detections
       for (int i = 0; i < numDetections; i++) {
-        // Get class scores (indices 4, 5, 6)
         List<double> classScores = [];
         for (int c = 4; c < batch.length; c++) {
           classScores.add((batch[c][i] as num).toDouble());
         }
 
-        // Find max class score and its index
         double maxScore = classScores.reduce((a, b) => a > b ? a : b);
         int classId = classScores.indexOf(maxScore);
 
-        if (maxScore > 0.25) { // Confidence threshold
-          print('   Detection $i: class=$classId, score=${maxScore.toStringAsFixed(3)}');
-
-          if (maxScore > maxConfidence) {
-            maxConfidence = maxScore;
-            maxClass = classId;
-          }
+        if (maxScore > DETECTION_THRESHOLD) {
+          classDetections[classId]?.add(maxScore);
+          classVotes[classId] = (classVotes[classId] ?? 0) + 1;
+          totalValidDetections++;
         }
       }
 
-      print('🎯 Total detections checked: $numDetections');
-      print('🎯 Best detection: class=$maxClass, confidence=${maxConfidence.toStringAsFixed(3)}');
+      // 🔍 DETAILED DEBUG
+      print('\n📊 ========== DETECTION SUMMARY ==========');
+      print(
+          '🔵 EARRING (class 0): ${classDetections[0]?.length ?? 0} detections, ${classVotes[0]} votes');
+      if (classDetections[0]!.isNotEmpty) {
+        print(
+            '   Top scores: ${classDetections[0]!.take(3).map((s) => s.toStringAsFixed(3)).join(", ")}');
+      }
 
-      if (maxConfidence > 0.25 && _labels != null && maxClass < _labels!.length) {
-        final label = _labels![maxClass];
-        print('✅ DETECTION SUCCESS: $label (${(maxConfidence * 100).toStringAsFixed(1)}%)');
+      print(
+          '🟢 NECKLACE (class 1): ${classDetections[1]?.length ?? 0} detections, ${classVotes[1]} votes');
+      if (classDetections[1]!.isNotEmpty) {
+        print(
+            '   Top scores: ${classDetections[1]!.take(3).map((s) => s.toStringAsFixed(3)).join(", ")}');
+      }
+
+      print(
+          '🔴 RING (class 2): ${classDetections[2]?.length ?? 0} detections, ${classVotes[2]} votes');
+      if (classDetections[2]!.isNotEmpty) {
+        print(
+            '   Top scores: ${classDetections[2]!.take(3).map((s) => s.toStringAsFixed(3)).join(", ")}');
+      }
+
+      print('📈 Total valid detections: $totalValidDetections');
+      print('==========================================\n');
+
+      // ✅ VALIDATION 1: Enough detections?
+      if (totalValidDetections < MINIMUM_DETECTIONS) {
+        print(
+            '❌ REJECTED: Not enough detections ($totalValidDetections < $MINIMUM_DETECTIONS)');
+        return _noDetectionResult();
+      }
+
+      // ✅ VALIDATION 2: Clear consensus?
+      int maxVotes = classVotes.values.reduce((a, b) => a > b ? a : b);
+      if (maxVotes < totalValidDetections * CONSENSUS_RATIO) {
+        print(
+            '❌ REJECTED: No consensus (${(maxVotes / totalValidDetections * 100).toStringAsFixed(1)}% < ${CONSENSUS_RATIO * 100}%)');
+        return _noDetectionResult();
+      }
+
+      // Find winning class
+      int winningClass =
+          classVotes.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+
+      // ✅ VALIDATION 3: Winning class must have good scores
+      List<double> winningScores = classDetections[winningClass]!
+          .where((s) => s > MINIMUM_CONFIDENCE)
+          .toList();
+
+      if (winningScores.isEmpty) {
+        print('❌ REJECTED: No scores above minimum confidence');
+        return _noDetectionResult();
+      }
+
+      // ✅ VALIDATION 4: Use AVERAGE of top scores (more robust)
+      winningScores.sort((a, b) => b.compareTo(a));
+      List<double> topScores = winningScores.take(5).toList();
+      double avgConfidence =
+          topScores.reduce((a, b) => a + b) / topScores.length;
+
+      print('🎯 WINNER: class=$winningClass (${_labels?[winningClass]})');
+      print(
+          '   Votes: $maxVotes/$totalValidDetections (${(maxVotes / totalValidDetections * 100).toStringAsFixed(1)}%)');
+      print('   Max confidence: ${winningScores.first.toStringAsFixed(3)}');
+      print('   Avg confidence: ${avgConfidence.toStringAsFixed(3)}');
+
+      // Final confidence check
+      if (avgConfidence < MINIMUM_CONFIDENCE) {
+        print(
+            '❌ REJECTED: Average confidence too low (${avgConfidence.toStringAsFixed(3)} < $MINIMUM_CONFIDENCE)');
+        return _noDetectionResult(avgConfidence);
+      }
+
+      // ✅ SUCCESS - Return result
+      if (_labels != null && winningClass < _labels!.length) {
+        final label = _labels![winningClass].trim(); // ← Ensure trimmed
+        print(
+            '✅ FINAL DETECTION: "$label" with ${avgConfidence.toStringAsFixed(3)} confidence\n');
 
         return {
           'success': true,
           'product_name': label,
           'category': label,
-          'confidence': maxConfidence,
-          'authenticity': _getAuthenticity(maxConfidence),
-          'estimated_value': _estimateValue(label, maxConfidence),
+          'confidence': avgConfidence, // Use averaged confidence
+          'authenticity': _getAuthenticity(avgConfidence),
+          'estimated_value': _estimateValue(label, avgConfidence),
+          'votes': maxVotes,
+          'total_detections': totalValidDetections,
         };
       }
 
-      print('⚠️ No confident detection found');
-      return _noDetectionResult(maxConfidence);
-      
+      return _noDetectionResult();
     } catch (e, stackTrace) {
       print('❌ Output processing error: $e');
       print('❌ Stack: $stackTrace');
@@ -272,12 +338,20 @@ class OnnxService {
   }
 
   Map<String, dynamic> _noDetectionResult([double conf = 0.0]) {
+    String message = 'No jewelry detected';
+
+    if (conf > 0.0 && conf < 0.40) {
+      message = 'Low confidence - not clear jewelry';
+    } else if (conf >= 0.40 && conf < 0.65) {
+      message = 'Uncertain detection - try better lighting/angle';
+    }
+
     return {
       'success': false,
-      'product_name': 'No jewelry detected',
+      'product_name': message,
       'category': 'Unknown',
       'confidence': conf,
-      'authenticity': 'Low confidence',
+      'authenticity': 'Not detected',
       'estimated_value': 'N/A',
     };
   }
@@ -289,15 +363,19 @@ class OnnxService {
   }
 
   String _estimateValue(String category, double confidence) {
+    print('💰 Calculating price for: "$category"');
+
     Map<String, int> baseValues = {
-      'ring': 500,
-      'necklace': 800,
-      'earring': 400
+      'ring': 800,
+      'necklace': 600,
+      'earring': 400,
     };
 
-    int base = baseValues[category.toLowerCase()] ?? 500;
-    double estimated = base * (0.5 + confidence * 0.5);
+    int base = baseValues[category] ?? 500;
 
+    print('💰 Base value: ₱$base');
+
+    double estimated = base * (0.5 + confidence * 0.5);
     return '₱${estimated.toStringAsFixed(0)} - ₱${(estimated * 1.5).toStringAsFixed(0)}';
   }
 
