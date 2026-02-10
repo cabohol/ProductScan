@@ -15,8 +15,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
   int _selectedIndex = 2;
 
   late TextEditingController _nameController;
+  late TextEditingController _addressController;
   bool _isEditing = false;
+  bool _isEditingAddress = false;
   String? _initialName;
+  String? _initialAddress; 
   String? _avatarUrl;
   bool _isLoadingImage = false;
 
@@ -25,13 +28,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
     super.initState();
     final user = authService.currentUser;
     _initialName = user?.userMetadata?['name'] as String? ?? '';
+    _initialAddress = user?.userMetadata?['address'] as String? ?? ''; 
     _avatarUrl = authService.getProfilePictureUrl();
     _nameController = TextEditingController(text: _initialName);
+    _addressController = TextEditingController(text: _initialAddress);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _addressController.dispose(); 
     super.dispose();
   }
 
@@ -98,6 +104,62 @@ class _UserProfilePageState extends State<UserProfilePage> {
       );
     }
   }
+
+  Future<void> _saveAddress() async {
+  final newAddress = _addressController.text.trim();
+  if (newAddress.isEmpty) return;
+
+  try {
+    await authService.updateUserAddress(newAddress);
+    setState(() {
+      _isEditingAddress = false;
+      _initialAddress = newAddress;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        backgroundColor: const Color(0xFF249E94),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Row(
+          children: const [
+            Icon(Icons.check_circle_outline, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Address updated successfully!',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        backgroundColor: Colors.redAccent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Failed to update address: $e',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+}
 
   Future<void> _pickAndUploadImage(ImageSource source) async {
     try {
@@ -368,110 +430,167 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       ],
                     ),
                   ),
-                  body: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 70),
+                body: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 70),
 
-                        // Name Section
-                        Text('Name', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500, fontSize: 15, letterSpacing: 1.2)),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _isEditing
-                                  ? TextField(
-                                      controller: _nameController,
-                                      decoration: InputDecoration(
-                                        filled: true,
-                                        fillColor: Colors.grey[100],
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      // Name Section
+                      Text('Name', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500, fontSize: 15, letterSpacing: 1.2)),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _isEditing
+                                ? TextField(
+                                    controller: _nameController,
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.grey[100],
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    ),
+                                  )
+                                : Row(
+                                    children: [
+                                      const Icon(Icons.person_outline, color: Color(0xFF0C7779), size: 22),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _initialName ?? '',
+                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Color(0xFF005461)),
                                       ),
-                                    )
-                                  : Row(
-                                      children: [
-                                        const Icon(Icons.person_outline, color: Color(0xFF0C7779), size: 22),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          _initialName ?? '',
+                                    ],
+                                  ),
+                          ),
+                          const SizedBox(width: 12),
+                          _isEditing
+                              ? ElevatedButton.icon(
+                                  onPressed: _saveName,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF14A9A8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  icon: const Icon(Icons.check, color: Colors.white, size: 20),
+                                  label: const Text('Save', style: TextStyle(fontSize: 16, color: Colors.white)),
+                                )
+                              : Container(
+                                  decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF0C7779)),
+                                  child: IconButton(
+                                    onPressed: () => setState(() => _isEditing = true),
+                                    icon: const Icon(Icons.edit, color: Colors.white),
+                                  ),
+                                ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Email Section
+                      Text('Email', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500, fontSize: 15, letterSpacing: 1.2)),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: const Color(0xFF0C7779).withOpacity(0.1), shape: BoxShape.circle),
+                              child: const Icon(Icons.email_outlined, color: Color(0xFF0C7779), size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(email, style: const TextStyle(fontSize: 16, color: Color(0xFF005461))),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 20),
+
+                      // Address Section
+                      Text('Address', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500, fontSize: 15, letterSpacing: 1.2)),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _isEditingAddress
+                                ? TextField(
+                                    controller: _addressController,
+                                    maxLines: 2,
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.grey[100],
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    ),
+                                  )
+                                : Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.only(top: 2),
+                                        child: Icon(Icons.location_on_outlined, color: Color(0xFF0C7779), size: 22),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _initialAddress ?? '',
                                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Color(0xFF005461)),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 12),
-                                  _isEditing
-                                      ? ElevatedButton.icon(
-                                          onPressed: _saveName,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF14A9A8),
-                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          ),
-                                          icon: const Icon(Icons.check, color: Colors.white, size: 20),
-                                          label: const Text('Save', style: TextStyle(fontSize: 16, color: Colors.white)),
-                                        )
-                                      : Container(
-                                          decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF0C7779)),
-                                          child: IconButton(
-                                            onPressed: () => setState(() => _isEditing = true),
-                                            icon: const Icon(Icons.edit, color: Colors.white),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                    const SizedBox(height: 30),
-
-                                    // Email Section
-                                    Text('Email', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500, fontSize: 15, letterSpacing: 1.2)),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(color: const Color(0xFF0C7779).withOpacity(0.1), shape: BoxShape.circle),
-                                            child: const Icon(Icons.email_outlined, color: Color(0xFF0C7779), size: 20),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(email, style: const TextStyle(fontSize: 16, color: Color(0xFF005461))),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 40),
-
-                                    // Logout Button
-                                    Container(
-                                      margin: const EdgeInsets.only(top: 40),
-                                      child: Center(
-                                        child: ElevatedButton.icon(
-                                          onPressed: _logout,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF0D7377),
-                                            padding: const EdgeInsets.symmetric(horizontal: 125, vertical: 20),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          ),
-                                          icon: const Icon(Icons.logout, color: Colors.white),
-                                          label: const Text(
-                                            'Log Out',
-                                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                          ),
+                          const SizedBox(width: 12),
+                          _isEditingAddress
+                              ? ElevatedButton.icon(
+                                  onPressed: _saveAddress,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF14A9A8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  icon: const Icon(Icons.check, color: Colors.white, size: 20),
+                                  label: const Text('Save', style: TextStyle(fontSize: 16, color: Colors.white)),
+                                )
+                              : Container(
+                                  decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF0C7779)),
+                                  child: IconButton(
+                                    onPressed: () => setState(() => _isEditingAddress = true),
+                                    icon: const Icon(Icons.edit, color: Colors.white),
+                                  ),
                                 ),
-                              ),
+                        ],
+                      ),
+
+                      const Spacer(),
+
+                      // Logout Button
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: _logout,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0D7377),
+                            padding: const EdgeInsets.symmetric(horizontal: 125, vertical: 20),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.logout, color: Colors.white),
+                          label: const Text(
+                            'Log Out',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
                               bottomNavigationBar: _buildBottomNavigationBar(),
                             );
                           }
