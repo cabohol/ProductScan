@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'services/supabase_service.dart';
-import 'nearby_stores_map.dart';  
-import 'services/supabase_service.dart';  
+import '../services/supabase_service.dart';
 
 class NearbyStoresMapPage extends StatefulWidget {
   final String productType; 
@@ -26,6 +24,7 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
   Set<Marker> _markers = {};
   List<Map<String, dynamic>> _nearbyStores = [];
   bool _isLoading = true;
+  String? _errorMessage;
   
   final SupabaseStoreService _storeService = SupabaseStoreService();
 
@@ -37,64 +36,101 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
 
   Future<void> _initializeMap() async {
     try {
+      print('🗺️ Initializing map...');
+      
       // Get user location
       _userLocation = await _getCurrentLocation();
       
       if (_userLocation == null) {
-        _showError('Could not get your location');
-        setState(() => _isLoading = false);
-        return;
+        print('⚠️ Using default location (Davao City)');
+        // Use default location if GPS fails (Davao City center)
+        _userLocation = Position(
+          latitude: 7.0700,
+          longitude: 125.6100,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        );
       }
 
+      print('📍 User location: ${_userLocation!.latitude}, ${_userLocation!.longitude}');
+
       // Fetch nearby stores
+      print('🔍 Searching for stores with: ${widget.productType}');
       _nearbyStores = await _storeService.getStoresWithProduct(
         widget.productType,
         _userLocation!,
       );
+
+      print('✅ Found ${_nearbyStores.length} stores');
 
       // Create markers
       _createMarkers();
 
       setState(() => _isLoading = false);
 
-    } catch (e) {
-      print('Error initializing map: $e');
-      _showError('Failed to load map');
-      setState(() => _isLoading = false);
+    } catch (e, stackTrace) {
+      print('❌ Error initializing map: $e');
+      print('Stack trace: $stackTrace');
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+      _showError('Failed to load map: $e');
     }
   }
 
   Future<Position?> _getCurrentLocation() async {
     try {
+      print('📱 Checking location permission...');
+      
       // Check permission
       LocationPermission permission = await Geolocator.checkPermission();
+      print('🔐 Current permission: $permission');
+      
       if (permission == LocationPermission.denied) {
+        print('🔐 Requesting permission...');
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
+          print('❌ Location permission denied');
           _showError('Location permission denied');
           return null;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
+        print('❌ Location permission permanently denied');
         _showError('Location permission permanently denied');
         return null;
       }
 
-      // Get current position
-      return await Geolocator.getCurrentPosition(
+      print('✅ Permission granted, getting position...');
+      
+      // Get current position with timeout
+      final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
       );
+      
+      print('✅ Got position: ${position.latitude}, ${position.longitude}');
+      return position;
+      
     } catch (e) {
-      print('Error getting location: $e');
+      print('❌ Error getting location: $e');
       return null;
     }
   }
 
   void _createMarkers() {
     _markers.clear();
+    print('📍 Creating ${_nearbyStores.length + 1} markers...');
 
-    // Add user location marker
+    // Add user location marker (blue)
     if (_userLocation != null) {
       _markers.add(
         Marker(
@@ -104,15 +140,18 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
           infoWindow: const InfoWindow(title: 'Your Location'),
         ),
       );
+      print('✅ Added user marker at ${_userLocation!.latitude}, ${_userLocation!.longitude}');
     }
 
-    // Add store markers
+    // Add store markers (green)
     for (int i = 0; i < _nearbyStores.length; i++) {
       final store = _nearbyStores[i];
+      print('✅ Adding store marker: ${store['store_name']} at ${store['latitude']}, ${store['longitude']}');
+      
       _markers.add(
         Marker(
           markerId: MarkerId('store_${store['id']}'),
-          position: LatLng(store['latitude'], store['longtitude']),
+          position: LatLng(store['latitude'], store['longitude']),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           infoWindow: InfoWindow(
             title: store['store_name'],
@@ -122,6 +161,8 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
         ),
       );
     }
+    
+    print('✅ Total markers created: ${_markers.length}');
   }
 
   void _showStoreDetails(Map<String, dynamic> store) {
@@ -213,8 +254,10 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
     final url = _storeService.getDirectionsUrl(
       _userLocation!,
       store['latitude'],
-      store['longtitude'],
+      store['longitude'],
     );
+
+    print('🗺️ Opening directions: $url');
 
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
@@ -225,10 +268,12 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -267,11 +312,18 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF14A9A8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    color: Color(0xFF14A9A8),
+                  ),
+                  SizedBox(height: 16),
+                  Text('Loading map...'),
+                ],
               ),
             )
-          : _userLocation == null
+          : _errorMessage != null
               ? _buildErrorState()
               : _nearbyStores.isEmpty
                   ? _buildNoStoresState()
@@ -289,7 +341,11 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
                           markers: _markers,
                           myLocationEnabled: true,
                           myLocationButtonEnabled: true,
+                          mapType: MapType.normal,
+                          zoomControlsEnabled: true,
+                          compassEnabled: true,
                           onMapCreated: (controller) {
+                            print('✅ Map created successfully');
                             _mapController = controller;
                           },
                         ),
@@ -318,11 +374,11 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Padding(
-                                  padding: EdgeInsets.all(20),
+                                Padding(
+                                  padding: const EdgeInsets.all(20),
                                   child: Text(
-                                    'Stores Found',
-                                    style: TextStyle(
+                                    'Stores Found (${_nearbyStores.length})',
+                                    style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF005461),
@@ -355,7 +411,7 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
         // Move camera to store
         _mapController?.animateCamera(
           CameraUpdate.newLatLng(
-            LatLng(store['latitude'], store['longtitude']),
+            LatLng(store['latitude'], store['longitude']),
           ),
         );
         _showStoreDetails(store);
@@ -412,31 +468,54 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
 
   Widget _buildErrorState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.location_off,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Could not get your location',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.grey[400],
             ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => _initializeMap(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF14A9A8),
+            const SizedBox(height: 16),
+            const Text(
+              'Failed to load map',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-            child: const Text('Try Again'),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage ?? 'Unknown error',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                  _errorMessage = null;
+                });
+                _initializeMap();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF14A9A8),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+              child: const Text(
+                'Try Again',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

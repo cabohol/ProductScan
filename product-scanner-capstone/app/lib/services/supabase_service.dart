@@ -5,79 +5,100 @@ import 'dart:math';
 class SupabaseStoreService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  // Get stores that have a specific product type (e.g., "ring", "necklace")
-  Future<List<Map<String, dynamic>>> getStoresWithProduct(String productType, Position userLocation) async {
+  /// Get stores that have a specific product type using available_products field
+  /// This searches stores based on YOLO label (ring, necklace, earrings)
+  /// and returns them sorted by distance from user (Dijkstra-like nearest-first)
+  Future<List<Map<String, dynamic>>> getStoresWithProduct(
+    String productType, 
+    Position userLocation
+  ) async {
     try {
-      // Step 1: Get products matching the yolo_label
-      final productsResponse = await _supabase
-          .from('products')
-          .select('id')
-          .eq('yolo_label', productType);
-
-      if (productsResponse.isEmpty) {
-        print('No products found for type: $productType');
-        return [];
-      }
-
-      // Get product IDs
-      final productIds = (productsResponse as List)
-          .map((p) => p['id'] as int)
-          .toList();
-
-      // Step 2: Get store IDs that have these products
-      final storeProductsResponse = await _supabase
-          .from('store_products')
-          .select('id')  // This should be the store's foreign key
-          .inFilter('id', productIds);  // Adjust based on your actual FK column name
-
-      if (storeProductsResponse.isEmpty) {
-        print('No stores found with this product');
-        return [];
-      }
-
-      final storeIds = (storeProductsResponse as List)
-          .map((sp) => sp['id'] as int)  // Adjust field name
-          .toSet()
-          .toList();
-
-      // Step 3: Get store details with locations
+      print('🔍 Searching for stores with product type: $productType');
+      
+      // Step 1: Get ALL stores with their available_products field
       final storesResponse = await _supabase
           .from('stores')
-          .select('id, store_name, latitude, longitudede')  // Note: your DB has 'longitudede' typo
-          .inFilter('id', storeIds);
+          .select('id, store_name, latitude, longitude, available_products');
 
-      // Calculate distances and sort by nearest
-      List<Map<String, dynamic>> storesWithDistance = [];
+      if (storesResponse.isEmpty) {
+        print('⚠️ No stores found in database');
+        return [];
+      }
+
+      print('📍 Retrieved ${(storesResponse as List).length} total stores');
+
+      // Step 2: Filter stores that have the product type in available_products
+      // The available_products field should contain comma-separated values like:
+      // "ring, necklace, earrings" or just "ring"
+      List<Map<String, dynamic>> matchingStores = [];
       
       for (var store in storesResponse as List) {
+        String? availableProducts = store['available_products']?.toString().toLowerCase();
+        
+        // Check if the product type exists in available_products
+        if (availableProducts != null && availableProducts.contains(productType.toLowerCase())) {
+          matchingStores.add(store);
+          print('✅ Store "${store['store_name']}" has $productType');
+        }
+      }
+
+      if (matchingStores.isEmpty) {
+        print('⚠️ No stores found selling: $productType');
+        return [];
+      }
+
+      print('✅ Found ${matchingStores.length} stores with $productType');
+
+      // Step 3: Calculate distances using Haversine formula (great-circle distance)
+      List<Map<String, dynamic>> storesWithDistance = [];
+      
+      for (var store in matchingStores) {
         double distance = _calculateDistance(
           userLocation.latitude,
           userLocation.longitude,
           store['latitude'],
-          store['longitudede'],  // Your DB field name
+          store['longitude'],
         );
 
         storesWithDistance.add({
           ...store,
           'distance': distance,
-          'distance_text': '${distance.toStringAsFixed(2)} km',
+          'distance_text': _formatDistance(distance),
         });
       }
 
-      // Sort by distance (nearest first)
-      storesWithDistance.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
+      // Step 4: Sort by distance (Dijkstra-like nearest-first approach)
+      // This gives us the shortest path/distance from user to each store
+      storesWithDistance.sort((a, b) => 
+        (a['distance'] as double).compareTo(b['distance'] as double)
+      );
 
+      // Optional: Limit to nearest 10 stores to avoid overwhelming the user
+      if (storesWithDistance.length > 10) {
+        storesWithDistance = storesWithDistance.sublist(0, 10);
+        print('📊 Limiting to nearest 10 stores');
+      }
+
+      print('✅ Returning ${storesWithDistance.length} nearest stores');
+      
+      // Print the nearest stores for debugging
+      for (var i = 0; i < storesWithDistance.length; i++) {
+        print('  ${i + 1}. ${storesWithDistance[i]['store_name']} - ${storesWithDistance[i]['distance_text']}');
+      }
+      
       return storesWithDistance;
 
-    } catch (e) {
-      print('Error fetching stores: $e');
+    } catch (e, stackTrace) {
+      print('❌ Error fetching stores: $e');
+      print('Stack trace: $stackTrace');
       return [];
     }
   }
 
-  // Calculate distance between two coordinates (Haversine formula)
+  /// Calculate distance between two coordinates using Haversine formula
+  /// Returns distance in kilometers
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    const double earthRadius = 6371; // km
+    const double earthRadius = 6371; // Earth's radius in kilometers
 
     double dLat = _toRadians(lat2 - lat1);
     double dLon = _toRadians(lon2 - lon1);
@@ -91,16 +112,28 @@ class SupabaseStoreService {
     return earthRadius * c;
   }
 
+  /// Convert degrees to radians
   double _toRadians(double degree) {
     return degree * pi / 180;
   }
 
-  // Get directions URL for Google Maps
+  /// Format distance for display
+  String _formatDistance(double distanceKm) {
+    if (distanceKm < 1) {
+      // Show in meters if less than 1 km
+      return '${(distanceKm * 1000).round()} m';
+    } else {
+      // Show in km with 2 decimal places
+      return '${distanceKm.toStringAsFixed(2)} km';
+    }
+  }
+
+  /// Get directions URL for Google Maps
   String getDirectionsUrl(Position from, double toLat, double toLng) {
     return 'https://www.google.com/maps/dir/?api=1&origin=${from.latitude},${from.longitude}&destination=$toLat,$toLng&travelmode=driving';
   }
 
-  // Save scan result to database
+  /// Save scan result to database with user_id
   Future<bool> saveScanResult({
     required String productName,
     required String category,
@@ -112,7 +145,18 @@ class SupabaseStoreService {
   }) async {
     try {
       print('💾 Saving scan result to Supabase...');
+      print('📝 Product: $productName');
+      print('📝 Category: $category');
+      print('📝 YOLO Label: $yoloLabel');
       
+      // Get current user ID
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        print('❌ Error: No user logged in!');
+        return false;
+      }
+      print('👤 User ID: $userId');
+
       // Step 1: Check if product already exists
       final existingProduct = await _supabase
           .from('products')
@@ -129,6 +173,7 @@ class SupabaseStoreService {
         print('✅ Product already exists with ID: $productId');
       } else {
         // Step 2: Insert new product
+        print('📝 Creating new product...');
         final newProduct = await _supabase
             .from('products')
             .insert({
@@ -143,37 +188,52 @@ class SupabaseStoreService {
         print('✅ New product created with ID: $productId');
       }
 
-      // Step 3: Save to scan_history
-      await _supabase.from('scan_history').insert({
+      // Step 3: Save to scan_history with user_id
+      print('💾 Saving to scan_history...');
+      final scanData = {
         'product_id': productId,
+        'user_id': userId,
         'confidence': confidence ?? 0.0,
         'estimated_value': estimatedValue ?? 'N/A',
         'authenticity': authenticity ?? 'Pending',
         'image_path': imagePath,
         'scan_date': DateTime.now().toIso8601String(),
-      });
+      };
+
+      print('📦 Scan data: $scanData');
+
+      await _supabase.from('scan_history').insert(scanData);
 
       print('✅ Scan saved successfully!');
       return true;
 
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ Error saving scan: $e');
+      print('Stack trace: $stackTrace');
       return false;
     }
   }
 
-  // Get scan history (optional - for viewing past scans)
+  /// Get scan history for current user
   Future<List<Map<String, dynamic>>> getScanHistory({int limit = 20}) async {
     try {
+      // Filter by current user
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        print('❌ No user logged in');
+        return [];
+      }
+
       final response = await _supabase
           .from('scan_history')
           .select('*, products(*)')
+          .eq('user_id', userId)
           .order('scan_date', ascending: false)
           .limit(limit);
 
       return (response as List).cast<Map<String, dynamic>>();
     } catch (e) {
-      print('Error fetching scan history: $e');
+      print('❌ Error fetching scan history: $e');
       return [];
     }
   }
