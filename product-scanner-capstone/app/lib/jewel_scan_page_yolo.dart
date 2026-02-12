@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'services/onnx_service.dart';
+import 'pages/nearby_stores_map_page.dart';
+import '../services/supabase_service.dart';
 
 class JewelScanPage extends StatefulWidget {
   const JewelScanPage({super.key});
@@ -13,7 +15,8 @@ class JewelScanPage extends StatefulWidget {
   State<JewelScanPage> createState() => _JewelScanPageState();
 }
 
-class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProviderStateMixin {
+class _JewelScanPageState extends State<JewelScanPage>
+    with SingleTickerProviderStateMixin {
   int _selectedIndex = 1;
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
@@ -22,53 +25,72 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
   File? _scannedImage;
   late AnimationController _scanAnimationController;
   late Animation<double> _scanAnimation;
-  
+
   final OnnxService _onnxService = OnnxService();
   bool _isAnalyzing = false;
   bool _isModelLoading = true; // ← ADD THIS
   Map<String, dynamic>? _analysisResult;
 
- @override
+  @override
   void initState() {
     super.initState();
     _initializeCamera();
     _initializeTFLite();
-    
+
     _scanAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    
+
     _scanAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _scanAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+          parent: _scanAnimationController, curve: Curves.easeInOut),
     );
   }
 
+  void _findNearbyStores() {
+    if (_analysisResult == null) {
+      _showError('Please scan a product first');
+      return;
+    }
 
- Future<void> _initializeTFLite() async {
+    final yoloLabel = _analysisResult!['category'] ?? 'jewelry';
+    final productName = _analysisResult!['product_name'] ?? 'this product';
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NearbyStoresMapPage(
+          productType: yoloLabel.toLowerCase(),
+          productName: productName,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _initializeTFLite() async {
     setState(() {
       _isModelLoading = true; // ← UPDATE STATE
     });
-    
+
     try {
       await _onnxService.loadModel();
       print('✅ ONNX model ready!');
-      
+
       // TEST THE MODEL
       await _onnxService.testModel();
-      
+
       setState(() {
         _isModelLoading = false; // ← MODEL LOADED
       });
-      
     } catch (e) {
       print('❌ Failed to load ONNX: $e');
       print('❌ Stack trace: ${StackTrace.current}');
-      
+
       setState(() {
         _isModelLoading = false;
       });
-      
+
       // Show error to user
       if (mounted) {
         _showError('Failed to load AI model. Please restart the app.');
@@ -99,11 +121,12 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
 
   @override
   void dispose() {
-    _onnxService.dispose();  
+    _onnxService.dispose();
     _cameraController?.dispose();
     _scanAnimationController.dispose();
     super.dispose();
   }
+
   void _onItemTapped(int index) {
     if (index == 0) {
       Navigator.pushReplacementNamed(context, '/home');
@@ -123,13 +146,13 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
     }
   }
 
-   Future<void> _takePicture() async {
+  Future<void> _takePicture() async {
     // ← ADD CHECK HERE
     if (_isModelLoading) {
       _showError('Please wait, AI model is still loading...');
       return;
     }
-    
+
     if (_cameraController != null && _isCameraInitialized) {
       try {
         final XFile photo = await _cameraController!.takePicture();
@@ -151,13 +174,13 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
       _showError('Please wait, AI model is still loading...');
       return;
     }
-    
+
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 70,
     );
- 
+
     if (image != null) {
       setState(() {
         _scannedImage = File(image.path);
@@ -168,53 +191,51 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
     }
   }
 
- Future<void> _analyzeImage(File imageFile) async {
-  setState(() {
-    _isAnalyzing = true;
-  });
-
-  try {
-    print('\n🔍 ============ ANALYSIS START ============');
-    print('📁 Image path: ${imageFile.path}');
-    print('📁 Image exists: ${await imageFile.exists()}');
-    print('📁 Image size: ${await imageFile.length()} bytes');
-    
-    // Run inference
-    var result = await _onnxService.predict(imageFile);
-    
-    print('📊 Result: $result');
-    print('🔍 ============ ANALYSIS END ============\n');
-    
-    if (result != null) {
-      setState(() {
-        _analysisResult = result;
-        _isAnalyzing = false;
-      });
-      
-      if (result['success'] == true) {
-        print('✅ Detection successful!');
-      } else {
-        print('⚠️ No detection or low confidence');
-      }
-    } else {
-      setState(() {
-        _isAnalyzing = false;
-      });
-      _showError('Failed to analyze image');
-    }
-    
-  } catch (e, stackTrace) {
-    print('❌ Error: $e');
-    print('❌ Stack: $stackTrace');
+  Future<void> _analyzeImage(File imageFile) async {
     setState(() {
-      _isAnalyzing = false;
+      _isAnalyzing = true;
     });
-    _showError('Error analyzing image: $e');
+
+    try {
+      print('\n🔍 ============ ANALYSIS START ============');
+      print('📁 Image path: ${imageFile.path}');
+      print('📁 Image exists: ${await imageFile.exists()}');
+      print('📁 Image size: ${await imageFile.length()} bytes');
+
+      // Run inference
+      var result = await _onnxService.predict(imageFile);
+
+      print('📊 Result: $result');
+      print('🔍 ============ ANALYSIS END ============\n');
+
+      if (result != null) {
+        setState(() {
+          _analysisResult = result;
+          _isAnalyzing = false;
+        });
+
+        if (result['success'] == true) {
+          print('✅ Detection successful!');
+        } else {
+          print('⚠️ No detection or low confidence');
+        }
+      } else {
+        setState(() {
+          _isAnalyzing = false;
+        });
+        _showError('Failed to analyze image');
+      }
+    } catch (e, stackTrace) {
+      print('❌ Error: $e');
+      print('❌ Stack: $stackTrace');
+      setState(() {
+        _isAnalyzing = false;
+      });
+      _showError('Error analyzing image: $e');
+    }
   }
 
-}
-
-    void _showError(String message) {
+  void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -224,7 +245,6 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
     );
   }
 
- 
   void _showScanResult() {
     showModalBottomSheet(
       context: context,
@@ -257,7 +277,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
             ),
           ),
           const SizedBox(height: 20),
- 
+
           // Title
           const Text(
             'Scan Result',
@@ -269,7 +289,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
             ),
           ),
           const SizedBox(height: 20),
- 
+
           // Scanned Image
           if (_scannedImage != null)
             Container(
@@ -294,9 +314,9 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                 ),
               ),
             ),
- 
+
           const SizedBox(height: 30),
- 
+
           // Product Info - YOLO results
           Expanded(
             child: SingleChildScrollView(
@@ -305,48 +325,42 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildInfoRow(
-                    Icons.diamond_outlined, 
-                    'Product', 
-                    _isAnalyzing 
-                      ? 'Analyzing...' 
-                      : (_analysisResult?['product_name'] ?? 'Unknown')
-                  ),
+                      Icons.diamond_outlined,
+                      'Product',
+                      _isAnalyzing
+                          ? 'Analyzing...'
+                          : (_analysisResult?['product_name'] ?? 'Unknown')),
                   const SizedBox(height: 15),
                   _buildInfoRow(
-                    Icons.category_outlined, 
-                    'Category', 
-                    _isAnalyzing 
-                      ? 'Detecting...' 
-                      : (_analysisResult?['category'] ?? 'Jewelry')
-                  ),
+                      Icons.category_outlined,
+                      'Category',
+                      _isAnalyzing
+                          ? 'Detecting...'
+                          : (_analysisResult?['category'] ?? 'Jewelry')),
                   const SizedBox(height: 15),
                   _buildInfoRow(
-                    Icons.verified_outlined, 
-                    'Authenticity', 
-                    _isAnalyzing 
-                      ? 'Checking...' 
-                      : (_analysisResult?['authenticity'] ?? 'Pending')
-                  ),
+                      Icons.verified_outlined,
+                      'Authenticity',
+                      _isAnalyzing
+                          ? 'Checking...'
+                          : (_analysisResult?['authenticity'] ?? 'Pending')),
                   const SizedBox(height: 15),
                   _buildInfoRow(
-                    Icons.attach_money, 
-                    'Est. Value', 
-                    _isAnalyzing 
-                      ? 'Calculating...' 
-                      : (_analysisResult?['estimated_value'] ?? 'N/A')
-                  ),
+                      Icons.attach_money,
+                      'Est. Value',
+                      _isAnalyzing
+                          ? 'Calculating...'
+                          : (_analysisResult?['estimated_value'] ?? 'N/A')),
                   const SizedBox(height: 15),
-                  if (_analysisResult != null && _analysisResult!['confidence'] != null)
-                    _buildInfoRow(
-                      Icons.analytics_outlined, 
-                      'Confidence', 
-                      '${(_analysisResult!['confidence'] * 100).toStringAsFixed(1)}%'
-                    ),
+                  if (_analysisResult != null &&
+                      _analysisResult!['confidence'] != null)
+                    _buildInfoRow(Icons.analytics_outlined, 'Confidence',
+                        '${(_analysisResult!['confidence'] * 100).toStringAsFixed(1)}%'),
                 ],
               ),
             ),
           ),
- 
+
           // Action Buttons
           Padding(
             padding: const EdgeInsets.all(20),
@@ -363,7 +377,8 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                     },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Color(0xFF0C7779), width: 2),
+                      side:
+                          const BorderSide(color: Color(0xFF0C7779), width: 2),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -382,11 +397,13 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isAnalyzing ? null : () {
-                      Navigator.pop(context);
-                      // Save result to database or local storage
-                      _saveResult();
-                    },
+                    onPressed: _isAnalyzing
+                        ? null
+                        : () {
+                            Navigator.pop(context);
+                            // Save result to database or local storage
+                            _saveResult();
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF14A9A8),
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -405,6 +422,28 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                     ),
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _findNearbyStores,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0C7779),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.map, color: Colors.white),
+                    label: const Text(
+                      'Find Stores',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -413,18 +452,49 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
     );
   }
 
-  void _saveResult() {
-    // Implement saving to database or local storage
-    if (_analysisResult != null) {
-      debugPrint('Saving result: $_analysisResult');
+  void _saveResult() async {
+  if (_analysisResult == null) {
+    _showError('No scan result to save');
+    return;
+  }
+
+  // Show loading
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Saving scan result...'),
+      backgroundColor: Color(0xFF14A9A8),
+      duration: Duration(seconds: 1),
+    ),
+  );
+
+  try {
+    final SupabaseStoreService storeService = SupabaseStoreService();
+    
+    bool success = await storeService.saveScanResult(
+      productName: _analysisResult!['product_name'] ?? 'Unknown Product',
+      category: _analysisResult!['category'] ?? 'Jewelry',
+      yoloLabel: _analysisResult!['category']?.toLowerCase() ?? 'jewelry',
+      confidence: _analysisResult!['confidence']?.toDouble(),
+      estimatedValue: _analysisResult!['estimated_value'],
+      authenticity: _analysisResult!['authenticity'],
+      imagePath: _scannedImage?.path,
+    );
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Scan result saved successfully!'),
+          content: Text('✅ Scan result saved successfully!'),
           backgroundColor: Color(0xFF14A9A8),
         ),
       );
+    } else {
+      _showError('Failed to save scan result');
     }
+  } catch (e) {
+    print('Error in _saveResult: $e');
+    _showError('Error saving result: $e');
   }
+}
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Container(
@@ -475,47 +545,47 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: Colors.black,
-    body: Stack(
-      children: [
-        // Camera Preview
-        if (_isCameraInitialized && _cameraController != null)
-          Positioned.fill(
-            child: CameraPreview(_cameraController!),
-          )
-        else
-          const Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF14A9A8),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Camera Preview
+          if (_isCameraInitialized && _cameraController != null)
+            Positioned.fill(
+              child: CameraPreview(_cameraController!),
+            )
+          else
+            const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF14A9A8),
+              ),
             ),
-          ),
-           // ← ADD MODEL LOADING OVERLAY
-        if (_isModelLoading)
-          Positioned.fill(
-            child: Container(
-              color: Colors.black.withOpacity(0.8),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(
-                      color: Color(0xFF14A9A8),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Loading AI Model...',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+          // ← ADD MODEL LOADING OVERLAY
+          if (_isModelLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.8),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(
+                        color: Color(0xFF14A9A8),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Loading AI Model...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
           // Gradient Overlay
           Positioned.fill(
@@ -535,7 +605,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
               ),
             ),
           ),
- 
+
           // Top Bar
           Positioned(
             top: 0,
@@ -543,7 +613,8 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
             right: 0,
             child: SafeArea(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -570,7 +641,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
               ),
             ),
           ),
- 
+
           // Scanning Frame with Animation
           Center(
             child: Container(
@@ -654,7 +725,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                       ),
                     ),
                   ),
- 
+
                   // Animated Scan Line
                   AnimatedBuilder(
                     animation: _scanAnimation,
@@ -689,7 +760,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
               ),
             ),
           ),
- 
+
           // Instructions
           Positioned(
             bottom: 180,
@@ -697,7 +768,8 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
             right: 0,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.7),
                   borderRadius: BorderRadius.circular(20),
@@ -714,7 +786,7 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
               ),
             ),
           ),
- 
+
           // Bottom Controls
           Positioned(
             bottom: 100,
@@ -731,13 +803,14 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                   ),
                   child: IconButton(
                     onPressed: _pickFromGallery,
-                    icon: const Icon(Icons.photo_library, color: Colors.white, size: 28),
+                    icon: const Icon(Icons.photo_library,
+                        color: Colors.white, size: 28),
                     iconSize: 50,
                   ),
                 ),
- 
+
                 const SizedBox(width: 40),
- 
+
                 // Capture Button
                 GestureDetector(
                   onTap: _takePicture,
@@ -760,12 +833,13 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 35),
+                    child: const Icon(Icons.camera_alt,
+                        color: Colors.white, size: 35),
                   ),
                 ),
- 
+
                 const SizedBox(width: 40),
- 
+
                 // Switch Camera Button
                 Container(
                   decoration: BoxDecoration(
@@ -776,7 +850,8 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                     onPressed: () {
                       // Switch camera logic
                     },
-                    icon: const Icon(Icons.flip_camera_ios, color: Colors.white, size: 28),
+                    icon: const Icon(Icons.flip_camera_ios,
+                        color: Colors.white, size: 28),
                     iconSize: 50,
                   ),
                 ),
@@ -814,9 +889,11 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(Icons.home_outlined, Icons.home_rounded, 'Home', 0),
+                _buildNavItem(
+                    Icons.home_outlined, Icons.home_rounded, 'Home', 0),
                 const SizedBox(width: 80),
-                _buildNavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile', 2),
+                _buildNavItem(Icons.person_outline_rounded,
+                    Icons.person_rounded, 'Profile', 2),
               ],
             ),
           ),
@@ -848,7 +925,8 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 32),
+                      child: const Icon(Icons.qr_code_scanner_rounded,
+                          color: Colors.white, size: 32),
                     ),
                     const SizedBox(height: 6),
                     const Text(
@@ -870,7 +948,8 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
     );
   }
 
-  Widget _buildNavItem(IconData iconInactive, IconData iconActive, String label, int index) {
+  Widget _buildNavItem(
+      IconData iconInactive, IconData iconActive, String label, int index) {
     bool isSelected = _selectedIndex == index;
     return Expanded(
       child: GestureDetector(
@@ -885,7 +964,9 @@ class _JewelScanPageState extends State<JewelScanPage> with SingleTickerProvider
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+                  color: isSelected
+                      ? Colors.white.withOpacity(0.2)
+                      : Colors.transparent,
                 ),
                 child: Icon(
                   isSelected ? iconActive : iconInactive,
