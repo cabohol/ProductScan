@@ -135,8 +135,8 @@ class SupabaseStoreService {
     return 'https://www.google.com/maps/dir/?api=1&origin=${from.latitude},${from.longitude}&destination=$toLat,$toLng&travelmode=driving';
   }
 
-  /// Save scan result to database with user_id
-  Future<bool> saveScanResult({
+  /// Save scan result to database with user_id (returns the scan record with ID)
+  Future<Map<String, dynamic>?> saveScanResult({
     required String productName,
     required String category,
     required String yoloLabel,
@@ -155,7 +155,7 @@ class SupabaseStoreService {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) {
         print('❌ Error: No user logged in!');
-        return false;
+        return null;
       }
       print('👤 User ID: $userId');
 
@@ -176,7 +176,7 @@ class SupabaseStoreService {
           print('❌ details: ${(e as dynamic).details}');
           print('❌ hint: ${(e as dynamic).hint}');
         } catch (_) {}
-        return false;
+        return null;
       }
 
       int productId;
@@ -208,7 +208,7 @@ class SupabaseStoreService {
             print('❌ details: ${(e as dynamic).details}');
             print('❌ hint: ${(e as dynamic).hint}');
           } catch (_) {}
-          return false;
+          return null;
         }
       }
 
@@ -227,23 +227,71 @@ class SupabaseStoreService {
       print('📦 Scan data: $scanData');
 
       try {
-        final scanResp = await _supabase.from('scan_history').insert(scanData);
+        final scanResp = await _supabase
+            .from('scan_history')
+            .insert(scanData)
+            .select()
+            .single();
         print('🔁 scan_history insert response: $scanResp');
+        print('✅ Scan saved successfully!');
+        return (scanResp as Map<String, dynamic>);
       } catch (e) {
         print('❌ scan_history insert error: ${e.runtimeType} - $e');
         try {
           print('❌ details: ${(e as dynamic).details}');
           print('❌ hint: ${(e as dynamic).hint}');
         } catch (_) {}
-        return false;
+        return null;
       }
-
-      print('✅ Scan saved successfully!');
-      return true;
     } catch (e, stackTrace) {
       print('❌ Error saving scan: $e');
       print('Stack trace: $stackTrace');
+      return null;
+    }
+  }
+
+  /// Save selected store for a scan
+  Future<bool> saveSelectedStore({
+    required int scanId,
+    required int storeId,
+    required String storeName,
+  }) async {
+    try {
+      print('💾 Saving selected store for scan...');
+      print('📍 Scan ID: $scanId, Store ID: $storeId, Store: $storeName');
+
+      // Update scan_history with store_id and store_name
+      await _supabase.from('scan_history').update({
+        'saved_store_id': storeId,
+        'saved_store_name': storeName,
+      }).eq('id', scanId);
+
+      print('✅ Store saved successfully!');
+      return true;
+    } catch (e) {
+      print('❌ Error saving store: $e');
       return false;
+    }
+  }
+
+  /// Get saved store for a specific scan
+  Future<Map<String, dynamic>?> getSavedStoreForScan(int scanId) async {
+    try {
+      final response = await _supabase
+          .from('scan_history')
+          .select('saved_store_id, saved_store_name')
+          .eq('id', scanId)
+          .maybeSingle();
+
+      if (response != null &&
+          response['saved_store_id'] != null &&
+          response['saved_store_id'] > 0) {
+        return response as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error getting saved store: $e');
+      return null;
     }
   }
 

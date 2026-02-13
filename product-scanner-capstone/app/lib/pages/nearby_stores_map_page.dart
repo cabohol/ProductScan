@@ -5,13 +5,15 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/supabase_service.dart';
 
 class NearbyStoresMapPage extends StatefulWidget {
-  final String productType; 
+  final String productType;
   final String productName;
+  final int? scanId; // Used to save selected store
 
   const NearbyStoresMapPage({
     super.key,
     required this.productType,
     required this.productName,
+    this.scanId,
   });
 
   @override
@@ -25,7 +27,7 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
   List<Map<String, dynamic>> _nearbyStores = [];
   bool _isLoading = true;
   String? _errorMessage;
-  
+
   final SupabaseStoreService _storeService = SupabaseStoreService();
 
   @override
@@ -37,10 +39,10 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
   Future<void> _initializeMap() async {
     try {
       print('🗺️ Initializing map...');
-      
+
       // Get user location
       _userLocation = await _getCurrentLocation();
-      
+
       if (_userLocation == null) {
         print('⚠️ Using default location (Davao City)');
         // Use default location if GPS fails (Davao City center)
@@ -58,7 +60,8 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
         );
       }
 
-      print('📍 User location: ${_userLocation!.latitude}, ${_userLocation!.longitude}');
+      print(
+          '📍 User location: ${_userLocation!.latitude}, ${_userLocation!.longitude}');
 
       // Fetch nearby stores
       print('🔍 Searching for stores with: ${widget.productType}');
@@ -73,7 +76,6 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
       _createMarkers();
 
       setState(() => _isLoading = false);
-
     } catch (e, stackTrace) {
       print('❌ Error initializing map: $e');
       print('Stack trace: $stackTrace');
@@ -88,11 +90,11 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
   Future<Position?> _getCurrentLocation() async {
     try {
       print('📱 Checking location permission...');
-      
+
       // Check permission
       LocationPermission permission = await Geolocator.checkPermission();
       print('🔐 Current permission: $permission');
-      
+
       if (permission == LocationPermission.denied) {
         print('🔐 Requesting permission...');
         permission = await Geolocator.requestPermission();
@@ -110,16 +112,15 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
       }
 
       print('✅ Permission granted, getting position...');
-      
+
       // Get current position with timeout
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 10),
       );
-      
+
       print('✅ Got position: ${position.latitude}, ${position.longitude}');
       return position;
-      
     } catch (e) {
       print('❌ Error getting location: $e');
       return null;
@@ -140,19 +141,22 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
           infoWindow: const InfoWindow(title: 'Your Location'),
         ),
       );
-      print('✅ Added user marker at ${_userLocation!.latitude}, ${_userLocation!.longitude}');
+      print(
+          '✅ Added user marker at ${_userLocation!.latitude}, ${_userLocation!.longitude}');
     }
 
     // Add store markers (green)
     for (int i = 0; i < _nearbyStores.length; i++) {
       final store = _nearbyStores[i];
-      print('✅ Adding store marker: ${store['store_name']} at ${store['latitude']}, ${store['longitude']}');
-      
+      print(
+          '✅ Adding store marker: ${store['store_name']} at ${store['latitude']}, ${store['longitude']}');
+
       _markers.add(
         Marker(
           markerId: MarkerId('store_${store['id']}'),
           position: LatLng(store['latitude'], store['longitude']),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           infoWindow: InfoWindow(
             title: store['store_name'],
             snippet: '${store['distance_text']} away',
@@ -161,7 +165,7 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
         ),
       );
     }
-    
+
     print('✅ Total markers created: ${_markers.length}');
   }
 
@@ -219,33 +223,99 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
             ),
             const SizedBox(height: 24),
 
-            // Directions button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _openDirections(store),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF14A9A8),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            // Action buttons
+            Row(
+              children: [
+                // Save button (only if scanId is provided)
+                if (widget.scanId != null)
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _saveStore(store),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.save, color: Colors.white),
+                      label: const Text(
+                        'Save',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (widget.scanId != null) const SizedBox(width: 12),
+                // Directions button
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openDirections(store),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF14A9A8),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.directions, color: Colors.white),
+                    label: const Text(
+                      'Directions',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
-                icon: const Icon(Icons.directions, color: Colors.white),
-                label: const Text(
-                  'Get Directions',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _saveStore(Map<String, dynamic> store) async {
+    if (widget.scanId == null) return;
+
+    try {
+      final success = await _storeService.saveSelectedStore(
+        scanId: widget.scanId!,
+        storeId: store['id'],
+        storeName: store['store_name'],
+      );
+
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ ${store['store_name']} saved to your scan!'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          Navigator.pop(context); // Close modal
+          // Optionally pop back to previous screen
+          Future.delayed(
+            const Duration(milliseconds: 500),
+            () {
+              if (mounted) {
+                Navigator.pop(context);
+              }
+            },
+          );
+        } else {
+          _showError('Failed to save store');
+        }
+      }
+    } catch (e) {
+      _showError('Error saving store: $e');
+    }
   }
 
   Future<void> _openDirections(Map<String, dynamic> store) async {
@@ -331,45 +401,47 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
                       children: [
                         // Map
                         GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: LatLng(
-                            _userLocation!.latitude,
-                            _userLocation!.longitude,
+                          initialCameraPosition: CameraPosition(
+                            target: LatLng(
+                              _userLocation!.latitude,
+                              _userLocation!.longitude,
+                            ),
+                            zoom: 13,
                           ),
-                          zoom: 13,
-                        ),
-                        markers: _markers,
-                        myLocationEnabled: true,
-                        myLocationButtonEnabled: true,
-                        mapType: MapType.normal,
-                        zoomControlsEnabled: true,
-                        compassEnabled: true,
-                        onMapCreated: (controller) {
-                          print('✅ Map created successfully');
-                          if (!mounted) return;
-                          setState(() {
-                            _mapController = controller;
-                          });
-                          
-                          // Force camera update after creation
-                          Future.delayed(const Duration(milliseconds: 500), () {
-                            _mapController?.animateCamera(
-                              CameraUpdate.newCameraPosition(
-                                CameraPosition(
-                                  target: LatLng(_userLocation!.latitude, _userLocation!.longitude),
-                                  zoom: 13,
+                          markers: _markers,
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: true,
+                          mapType: MapType.normal,
+                          zoomControlsEnabled: true,
+                          compassEnabled: true,
+                          onMapCreated: (controller) {
+                            print('✅ Map created successfully');
+                            if (!mounted) return;
+                            setState(() {
+                              _mapController = controller;
+                            });
+
+                            // Force camera update after creation
+                            Future.delayed(const Duration(milliseconds: 500),
+                                () {
+                              _mapController?.animateCamera(
+                                CameraUpdate.newCameraPosition(
+                                  CameraPosition(
+                                    target: LatLng(_userLocation!.latitude,
+                                        _userLocation!.longitude),
+                                    zoom: 13,
+                                  ),
                                 ),
-                              ),
-                            );
-                          });
-                        },
-                        onCameraMove: (position) {
-                          print('📷 Camera moved to: ${position.target}');
-                        },
-                        onCameraIdle: () {
-                          print('📷 Camera idle');
-                        },
-                      ),
+                              );
+                            });
+                          },
+                          onCameraMove: (position) {
+                            print('📷 Camera moved to: ${position.target}');
+                          },
+                          onCameraIdle: () {
+                            print('📷 Camera idle');
+                          },
+                        ),
 
                         // Store list at bottom
                         Positioned(
@@ -409,7 +481,8 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
                                 Expanded(
                                   child: ListView.builder(
                                     scrollDirection: Axis.horizontal,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
                                     itemCount: _nearbyStores.length,
                                     itemBuilder: (context, index) {
                                       final store = _nearbyStores[index];
@@ -528,7 +601,8 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF14A9A8),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               ),
               child: const Text(
                 'Try Again',

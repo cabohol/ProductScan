@@ -30,6 +30,7 @@ class _JewelScanPageState extends State<JewelScanPage>
   bool _isAnalyzing = false;
   bool _isModelLoading = true; // ← ADD THIS
   Map<String, dynamic>? _analysisResult;
+  int? _lastScanId; // Track the last scan ID for saving store selection
 
   @override
   void initState() {
@@ -65,6 +66,7 @@ class _JewelScanPageState extends State<JewelScanPage>
         builder: (context) => NearbyStoresMapPage(
           productType: productName,
           productName: productName,
+          scanId: _lastScanId,
         ),
       ),
     );
@@ -251,7 +253,7 @@ class _JewelScanPageState extends State<JewelScanPage>
           : 'jewelry';
       final String productName = yoloLabelStr;
 
-      bool success = await storeService.saveScanResult(
+      var scanRecord = await storeService.saveScanResult(
         productName: productName,
         category: _analysisResult!['category'] ?? 'Jewelry',
         yoloLabel: yoloLabelStr,
@@ -263,8 +265,11 @@ class _JewelScanPageState extends State<JewelScanPage>
         imagePath: _scannedImage?.path,
       );
 
-      if (success) {
-        print('✅ Auto-saved to Supabase');
+      if (scanRecord != null && scanRecord['id'] != null) {
+        setState(() {
+          _lastScanId = scanRecord['id'];
+        });
+        print('✅ Auto-saved to Supabase with ID: ${scanRecord['id']}');
       }
     } catch (e) {
       print('❌ Auto-save failed: $e');
@@ -519,7 +524,7 @@ class _JewelScanPageState extends State<JewelScanPage>
     try {
       final SupabaseStoreService storeService = SupabaseStoreService();
 
-      bool success = await storeService.saveScanResult(
+      var scanRecord = await storeService.saveScanResult(
         productName: yoloLabelStr,
         category: _analysisResult!['category'] ??
             _analysisResult!['product_category'] ??
@@ -533,7 +538,7 @@ class _JewelScanPageState extends State<JewelScanPage>
         imagePath: _scannedImage?.path,
       );
 
-      if (success) {
+      if (scanRecord != null && scanRecord['id'] != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Scan result saved successfully!'),
