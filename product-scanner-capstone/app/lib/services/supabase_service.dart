@@ -212,8 +212,9 @@ class SupabaseStoreService {
         }
       }
 
-      // Step 3: Save to scan_history with user_id
-      print('💾 Saving to scan_history...');
+      // Step 3: Prepare scan data (and try to avoid duplicates)
+      print('💾 Preparing scan_history entry...');
+      final nowIso = DateTime.now().toIso8601String();
       final scanData = {
         'product_id': productId,
         'user_id': userId,
@@ -221,17 +222,40 @@ class SupabaseStoreService {
         'estimated_value': estimatedValue ?? 'N/A',
         'authenticity': authenticity ?? 'Pending',
         'image_path': imagePath,
-        'scan_date': DateTime.now().toIso8601String(),
+        'scan_date': nowIso,
       };
 
       print('📦 Scan data: $scanData');
 
       try {
+        // DEDUPLICATION: check for an existing very recent scan for same user/product
+        // We treat a scan as duplicate when the same user scanned the same product_id
+        // within the last 30 seconds OR when the exact image_path already exists.
+        final thirtySecondsAgo = DateTime.now()
+            .subtract(const Duration(seconds: 30))
+            .toIso8601String();
+
+        final existing = await _supabase
+            .from('scan_history')
+            .select('id, scan_date, image_path')
+            .eq('user_id', userId)
+            .eq('product_id', productId)
+            .or("scan_date.gte.$thirtySecondsAgo,image_path.eq.${imagePath ?? ''}")
+            .limit(1)
+            .maybeSingle();
+
+        if (existing != null) {
+          print(
+              '⚠️ Duplicate scan detected — returning existing record: $existing');
+          return (existing as Map<String, dynamic>);
+        }
+
         final scanResp = await _supabase
             .from('scan_history')
             .insert(scanData)
             .select()
             .single();
+
         print('🔁 scan_history insert response: $scanResp');
         print('✅ Scan saved successfully!');
         return (scanResp as Map<String, dynamic>);

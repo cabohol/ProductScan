@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -215,7 +217,7 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                   ),
                   child: Row(
                     children: [
-                      // Image placeholder
+                      // Display saved scan image (network or local) or fallback placeholder
                       Container(
                         width: 80,
                         height: 80,
@@ -227,10 +229,45 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                             width: 2,
                           ),
                         ),
-                        child: Icon(
-                          Icons.diamond,
-                          size: 40,
-                          color: const Color(0xFF0C7779).withOpacity(0.3),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(13),
+                          child: Builder(builder: (context) {
+                            final imageUrl = scan['image_url'] as String?;
+                            final imagePath = scan['image_path'] as String?;
+
+                            // Prefer remote URL (if you later add upload-to-storage)
+                            if (imageUrl != null && imageUrl.isNotEmpty) {
+                              return Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (c, e, s) => const Icon(
+                                  Icons.broken_image,
+                                  size: 36,
+                                  color: Color(0xFF0C7779),
+                                ),
+                              );
+                            }
+
+                            // If local path exists on-device, show it
+                            if (imagePath != null && imagePath.isNotEmpty) {
+                              try {
+                                final file = File(imagePath);
+                                if (file.existsSync()) {
+                                  return Image.file(file, fit: BoxFit.cover);
+                                }
+                              } catch (_) {}
+                            }
+
+                            // Fallback placeholder
+                            return Container(
+                              color: Colors.grey[200],
+                              child: Icon(
+                                Icons.diamond,
+                                size: 40,
+                                color: const Color(0xFF0C7779).withOpacity(0.3),
+                              ),
+                            );
+                          }),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -730,7 +767,7 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Image placeholder
+                        // Image (show network or local image if available; fallback placeholder)
                         Container(
                           height: 200,
                           decoration: BoxDecoration(
@@ -741,12 +778,60 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
                             ),
                             color: Colors.grey[200],
                           ),
-                          child: Center(
-                            child: Icon(
-                              Icons.diamond,
-                              size: 80,
-                              color: const Color(0xFF0C7779).withOpacity(0.3),
-                            ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(17),
+                            child: Builder(builder: (context) {
+                              final imageUrl =
+                                  widget.scan['image_url'] as String?;
+                              final imagePath =
+                                  widget.scan['image_path'] as String?;
+
+                              // Prefer remote URL
+                              if (imageUrl != null && imageUrl.isNotEmpty) {
+                                return Image.network(
+                                  imageUrl,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (c, e, s) => Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      size: 60,
+                                      color: const Color(0xFF0C7779)
+                                          .withOpacity(0.3),
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              // Local file path
+                              if (imagePath != null && imagePath.isNotEmpty) {
+                                try {
+                                  final file = File(imagePath);
+                                  if (file.existsSync()) {
+                                    return Image.file(
+                                      file,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      fit: BoxFit.cover,
+                                    );
+                                  }
+                                } catch (_) {}
+                              }
+
+                              // Fallback placeholder
+                              return Container(
+                                color: Colors.grey[200],
+                                child: Center(
+                                  child: Icon(
+                                    Icons.diamond,
+                                    size: 80,
+                                    color: const Color(0xFF0C7779)
+                                        .withOpacity(0.3),
+                                  ),
+                                ),
+                              );
+                            }),
                           ),
                         ),
                         const SizedBox(height: 30),

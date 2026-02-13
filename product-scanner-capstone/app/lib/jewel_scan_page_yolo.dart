@@ -439,7 +439,8 @@ class _JewelScanPageState extends State<JewelScanPage>
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isAnalyzing
+                    // Disable if we're analyzing OR if the result was already auto-saved
+                    onPressed: (_isAnalyzing || _lastScanId != null)
                         ? null
                         : () {
                             Navigator.pop(context);
@@ -454,9 +455,9 @@ class _JewelScanPageState extends State<JewelScanPage>
                       ),
                     ),
                     icon: const Icon(Icons.save, color: Colors.white),
-                    label: const Text(
-                      'Save',
-                      style: TextStyle(
+                    label: Text(
+                      _lastScanId != null ? 'Saved' : 'Save',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -497,6 +498,18 @@ class _JewelScanPageState extends State<JewelScanPage>
   void _saveResult() async {
     if (_analysisResult == null) {
       _showError('No scan result to save');
+      return;
+    }
+
+    // Prevent duplicate manual save if auto-save already stored this scan
+    if (_lastScanId != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This scan was already saved.'),
+          backgroundColor: Color(0xFF14A9A8),
+          duration: Duration(seconds: 2),
+        ),
+      );
       return;
     }
 
