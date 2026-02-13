@@ -9,12 +9,10 @@ class SupabaseStoreService {
   /// This searches stores based on YOLO label (ring, necklace, earrings)
   /// and returns them sorted by distance from user (Dijkstra-like nearest-first)
   Future<List<Map<String, dynamic>>> getStoresWithProduct(
-    String productType, 
-    Position userLocation
-  ) async {
+      String productType, Position userLocation) async {
     try {
       print('🔍 Searching for stores with product type: $productType');
-      
+
       // Step 1: Get ALL stores with their available_products field
       final storesResponse = await _supabase
           .from('stores')
@@ -31,12 +29,14 @@ class SupabaseStoreService {
       // The available_products field should contain comma-separated values like:
       // "ring, necklace, earrings" or just "ring"
       List<Map<String, dynamic>> matchingStores = [];
-      
+
       for (var store in storesResponse as List) {
-        String? availableProducts = store['available_products']?.toString().toLowerCase();
-        
+        String? availableProducts =
+            store['available_products']?.toString().toLowerCase();
+
         // Check if the product type exists in available_products
-        if (availableProducts != null && availableProducts.contains(productType.toLowerCase())) {
+        if (availableProducts != null &&
+            availableProducts.contains(productType.toLowerCase())) {
           matchingStores.add(store);
           print('✅ Store "${store['store_name']}" has $productType');
         }
@@ -51,7 +51,7 @@ class SupabaseStoreService {
 
       // Step 3: Calculate distances using Haversine formula (great-circle distance)
       List<Map<String, dynamic>> storesWithDistance = [];
-      
+
       for (var store in matchingStores) {
         double distance = _calculateDistance(
           userLocation.latitude,
@@ -69,9 +69,8 @@ class SupabaseStoreService {
 
       // Step 4: Sort by distance (Dijkstra-like nearest-first approach)
       // This gives us the shortest path/distance from user to each store
-      storesWithDistance.sort((a, b) => 
-        (a['distance'] as double).compareTo(b['distance'] as double)
-      );
+      storesWithDistance.sort((a, b) =>
+          (a['distance'] as double).compareTo(b['distance'] as double));
 
       // Optional: Limit to nearest 10 stores to avoid overwhelming the user
       if (storesWithDistance.length > 10) {
@@ -80,14 +79,14 @@ class SupabaseStoreService {
       }
 
       print('✅ Returning ${storesWithDistance.length} nearest stores');
-      
+
       // Print the nearest stores for debugging
       for (var i = 0; i < storesWithDistance.length; i++) {
-        print('  ${i + 1}. ${storesWithDistance[i]['store_name']} - ${storesWithDistance[i]['distance_text']}');
+        print(
+            '  ${i + 1}. ${storesWithDistance[i]['store_name']} - ${storesWithDistance[i]['distance_text']}');
       }
-      
-      return storesWithDistance;
 
+      return storesWithDistance;
     } catch (e, stackTrace) {
       print('❌ Error fetching stores: $e');
       print('Stack trace: $stackTrace');
@@ -97,15 +96,18 @@ class SupabaseStoreService {
 
   /// Calculate distance between two coordinates using Haversine formula
   /// Returns distance in kilometers
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
     const double earthRadius = 6371; // Earth's radius in kilometers
 
     double dLat = _toRadians(lat2 - lat1);
     double dLon = _toRadians(lon2 - lon1);
 
     double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_toRadians(lat1)) * cos(_toRadians(lat2)) *
-        sin(dLon / 2) * sin(dLon / 2);
+        cos(_toRadians(lat1)) *
+            cos(_toRadians(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
 
     double c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
@@ -148,7 +150,7 @@ class SupabaseStoreService {
       print('📝 Product: $productName');
       print('📝 Category: $category');
       print('📝 YOLO Label: $yoloLabel');
-      
+
       // Get current user ID
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) {
@@ -158,12 +160,24 @@ class SupabaseStoreService {
       print('👤 User ID: $userId');
 
       // Step 1: Check if product already exists
-      final existingProduct = await _supabase
-          .from('products')
-          .select('id')
-          .eq('yolo_label', yoloLabel)
-          .eq('product_name', productName)
-          .maybeSingle();
+      print('🔎 Querying products table for existing product...');
+      Map<String, dynamic>? existingProduct;
+      try {
+        final resp = await _supabase
+            .from('products')
+            .select('id')
+            .eq('yolo_label', yoloLabel)
+            .maybeSingle();
+        existingProduct = (resp as Map<String, dynamic>?);
+        print('🔁 existingProduct response: $existingProduct');
+      } catch (e) {
+        print('❌ existingProduct query error: ${e.runtimeType} - $e');
+        try {
+          print('❌ details: ${(e as dynamic).details}');
+          print('❌ hint: ${(e as dynamic).hint}');
+        } catch (_) {}
+        return false;
+      }
 
       int productId;
 
@@ -173,19 +187,29 @@ class SupabaseStoreService {
         print('✅ Product already exists with ID: $productId');
       } else {
         // Step 2: Insert new product
-        print('📝 Creating new product...');
-        final newProduct = await _supabase
-            .from('products')
-            .insert({
-              'product_name': productName,
-              'category': category,
-              'yolo_label': yoloLabel,
-            })
-            .select()
-            .single();
-        
-        productId = newProduct['id'];
-        print('✅ New product created with ID: $productId');
+        print(
+            '📝 Creating new product... payload: {category: $category, yolo_label: $yoloLabel}');
+        try {
+          final newProductResp = await _supabase
+              .from('products')
+              .insert({
+                'category': category,
+                'yolo_label': yoloLabel,
+              })
+              .select()
+              .single();
+
+          final newProduct = (newProductResp as Map<String, dynamic>);
+          productId = newProduct['id'];
+          print('✅ New product created with ID: $productId');
+        } catch (e) {
+          print('❌ newProduct insert error: ${e.runtimeType} - $e');
+          try {
+            print('❌ details: ${(e as dynamic).details}');
+            print('❌ hint: ${(e as dynamic).hint}');
+          } catch (_) {}
+          return false;
+        }
       }
 
       // Step 3: Save to scan_history with user_id
@@ -202,11 +226,20 @@ class SupabaseStoreService {
 
       print('📦 Scan data: $scanData');
 
-      await _supabase.from('scan_history').insert(scanData);
+      try {
+        final scanResp = await _supabase.from('scan_history').insert(scanData);
+        print('🔁 scan_history insert response: $scanResp');
+      } catch (e) {
+        print('❌ scan_history insert error: ${e.runtimeType} - $e');
+        try {
+          print('❌ details: ${(e as dynamic).details}');
+          print('❌ hint: ${(e as dynamic).hint}');
+        } catch (_) {}
+        return false;
+      }
 
       print('✅ Scan saved successfully!');
       return true;
-
     } catch (e, stackTrace) {
       print('❌ Error saving scan: $e');
       print('Stack trace: $stackTrace');

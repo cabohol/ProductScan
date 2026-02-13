@@ -54,14 +54,16 @@ class _JewelScanPageState extends State<JewelScanPage>
       return;
     }
 
-    final yoloLabel = _analysisResult!['category'] ?? 'jewelry';
-    final productName = _analysisResult!['product_name'] ?? 'this product';
+    final yoloLabel = _analysisResult!['category'] ??
+        _analysisResult!['yolo_label'] ??
+        'jewelry';
+    final String productName = yoloLabel.toString().toLowerCase();
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => NearbyStoresMapPage(
-          productType: yoloLabel.toLowerCase(),
+          productType: productName,
           productName: productName,
         ),
       ),
@@ -199,10 +201,7 @@ class _JewelScanPageState extends State<JewelScanPage>
     try {
       print('\n🔍 ============ ANALYSIS START ============');
       print('📁 Image path: ${imageFile.path}');
-      print('📁 Image exists: ${await imageFile.exists()}');
-      print('📁 Image size: ${await imageFile.length()} bytes');
 
-      // Run inference
       var result = await _onnxService.predict(imageFile);
 
       print('📊 Result: $result');
@@ -216,6 +215,9 @@ class _JewelScanPageState extends State<JewelScanPage>
 
         if (result['success'] == true) {
           print('✅ Detection successful!');
+
+          // ✅ AUTO-SAVE TO SUPABASE
+          await _saveResultToDatabase();
         } else {
           print('⚠️ No detection or low confidence');
         }
@@ -232,6 +234,41 @@ class _JewelScanPageState extends State<JewelScanPage>
         _isAnalyzing = false;
       });
       _showError('Error analyzing image: $e');
+    }
+  }
+
+// NEW: Silent background save
+  Future<void> _saveResultToDatabase() async {
+    if (_analysisResult == null) return;
+
+    try {
+      final SupabaseStoreService storeService = SupabaseStoreService();
+      final dynamic rawCategory = _analysisResult!['category'] ??
+          _analysisResult!['yolo_label'] ??
+          _analysisResult!['label'];
+      final String yoloLabelStr = rawCategory != null
+          ? rawCategory.toString().toLowerCase()
+          : 'jewelry';
+      final String productName = yoloLabelStr;
+
+      bool success = await storeService.saveScanResult(
+        productName: productName,
+        category: _analysisResult!['category'] ?? 'Jewelry',
+        yoloLabel: yoloLabelStr,
+        confidence: _analysisResult!['confidence'] is num
+            ? (_analysisResult!['confidence'] as num).toDouble()
+            : null,
+        estimatedValue: _analysisResult!['estimated_value']?.toString(),
+        authenticity: _analysisResult!['authenticity']?.toString(),
+        imagePath: _scannedImage?.path,
+      );
+
+      if (success) {
+        print('✅ Auto-saved to Supabase');
+      }
+    } catch (e) {
+      print('❌ Auto-save failed: $e');
+      // Don't show error to user - silent fail
     }
   }
 
@@ -329,7 +366,7 @@ class _JewelScanPageState extends State<JewelScanPage>
                       'Product',
                       _isAnalyzing
                           ? 'Analyzing...'
-                          : (_analysisResult?['product_name'] ?? 'Unknown')),
+                          : (_analysisResult?['yolo_label'] ?? 'Unknown')),
                   const SizedBox(height: 15),
                   _buildInfoRow(
                       Icons.category_outlined,
@@ -453,48 +490,64 @@ class _JewelScanPageState extends State<JewelScanPage>
   }
 
   void _saveResult() async {
-  if (_analysisResult == null) {
-    _showError('No scan result to save');
-    return;
-  }
+    if (_analysisResult == null) {
+      _showError('No scan result to save');
+      return;
+    }
 
-  // Show loading
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Saving scan result...'),
-      backgroundColor: Color(0xFF14A9A8),
-      duration: Duration(seconds: 1),
-    ),
-  );
+    // DEBUG: print the full analysis result so we can see which keys exist
+    print('🧾 _saveResult - analysisResult: $_analysisResult');
 
-  try {
-    final SupabaseStoreService storeService = SupabaseStoreService();
-    
-    bool success = await storeService.saveScanResult(
-      productName: _analysisResult!['product_name'] ?? 'Unknown Product',
-      category: _analysisResult!['category'] ?? 'Jewelry',
-      yoloLabel: _analysisResult!['category']?.toLowerCase() ?? 'jewelry',
-      confidence: _analysisResult!['confidence']?.toDouble(),
-      estimatedValue: _analysisResult!['estimated_value'],
-      authenticity: _analysisResult!['authenticity'],
-      imagePath: _scannedImage?.path,
+    // Safer extraction: try several common keys that ONNX/YOLO might return
+    final dynamic rawCategory = _analysisResult!['category'] ??
+        _analysisResult!['yolo_label'] ??
+        _analysisResult!['label'];
+    final String yoloLabelStr = (rawCategory != null)
+        ? rawCategory.toString().toLowerCase()
+        : 'jewelry';
+    print('🏷️ Resolved yoloLabel: $yoloLabelStr');
+
+    // Show loading
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Saving scan result...'),
+        backgroundColor: Color(0xFF14A9A8),
+        duration: Duration(seconds: 1),
+      ),
     );
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Scan result saved successfully!'),
-          backgroundColor: Color(0xFF14A9A8),
-        ),
+    try {
+      final SupabaseStoreService storeService = SupabaseStoreService();
+
+      bool success = await storeService.saveScanResult(
+        productName: yoloLabelStr,
+        category: _analysisResult!['category'] ??
+            _analysisResult!['product_category'] ??
+            'Jewelry',
+        yoloLabel: yoloLabelStr,
+        confidence: _analysisResult!['confidence'] is num
+            ? (_analysisResult!['confidence'] as num).toDouble()
+            : null,
+        estimatedValue: _analysisResult!['estimated_value']?.toString(),
+        authenticity: _analysisResult!['authenticity']?.toString(),
+        imagePath: _scannedImage?.path,
       );
-    } else {
-      _showError('Failed to save scan result');
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Scan result saved successfully!'),
+            backgroundColor: Color(0xFF14A9A8),
+          ),
+        );
+      } else {
+        _showError('Failed to save scan result');
+      }
+    } catch (e) {
+      print('Error in _saveResult: $e');
+      _showError('Error saving result: $e');
     }
-  } catch (e) {
-    print('Error in _saveResult: $e');
-    _showError('Error saving result: $e');
   }
-}
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Container(
