@@ -43,12 +43,11 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
       // Get user location
       _userLocation = await _getCurrentLocation();
 
-      if (_userLocation == null) {
-        print('⚠️ Using default location (Davao City)');
-        // Use default location if GPS fails (Davao City center)
+if (_userLocation == null) {
+        print('⚠️ Using default location (Butuan City)');
         _userLocation = Position(
-          latitude: 7.0700,
-          longitude: 125.6100,
+          latitude: 8.9475,
+          longitude: 125.5406,
           timestamp: DateTime.now(),
           accuracy: 0,
           altitude: 0,

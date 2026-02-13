@@ -292,13 +292,18 @@ class _JewelScanPageState extends State<JewelScanPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildScanResultSheet(),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) =>
+            _buildScanResultSheet(scrollController),
+      ),
     );
   }
 
-  Widget _buildScanResultSheet() {
+  Widget _buildScanResultSheet(ScrollController scrollController) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -332,78 +337,91 @@ class _JewelScanPageState extends State<JewelScanPage>
           ),
           const SizedBox(height: 20),
 
-          // Scanned Image
-          if (_scannedImage != null)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              height: 250,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF0C7779), width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0C7779).withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(17),
-                child: Image.file(
-                  _scannedImage!,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-
-          const SizedBox(height: 30),
-
-          // Product Info - YOLO results
+          // Scrollable Content
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              controller: scrollController,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoRow(
-                      Icons.diamond_outlined,
-                      'Product',
-                      _isAnalyzing
-                          ? 'Analyzing...'
-                          : (_analysisResult?['yolo_label'] ?? 'Unknown')),
-                  const SizedBox(height: 15),
-                  _buildInfoRow(
-                      Icons.category_outlined,
-                      'Category',
-                      _isAnalyzing
-                          ? 'Detecting...'
-                          : (_analysisResult?['category'] ?? 'Jewelry')),
-                  const SizedBox(height: 15),
-                  _buildInfoRow(
-                      Icons.verified_outlined,
-                      'Authenticity',
-                      _isAnalyzing
-                          ? 'Checking...'
-                          : (_analysisResult?['authenticity'] ?? 'Pending')),
-                  const SizedBox(height: 15),
-                  _buildInfoRow(
-                      Icons.attach_money,
-                      'Est. Value',
-                      _isAnalyzing
-                          ? 'Calculating...'
-                          : (_analysisResult?['estimated_value'] ?? 'N/A')),
-                  const SizedBox(height: 15),
-                  if (_analysisResult != null &&
-                      _analysisResult!['confidence'] != null)
-                    _buildInfoRow(Icons.analytics_outlined, 'Confidence',
-                        '${(_analysisResult!['confidence'] * 100).toStringAsFixed(1)}%'),
+                  // Scanned Image
+                  if (_scannedImage != null)
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      height: 250,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: const Color(0xFF0C7779), width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0C7779).withOpacity(0.2),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(17),
+                        child: Image.file(
+                          _scannedImage!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 30),
+
+                  // Product Info - YOLO results
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInfoRow(
+                            Icons.diamond_outlined,
+                            'Product',
+                            _isAnalyzing
+                                ? 'Analyzing...'
+                                : (_analysisResult?['yolo_label'] ??
+                                    'Unknown')),
+                        const SizedBox(height: 15),
+                        _buildInfoRow(
+                            Icons.category_outlined,
+                            'Category',
+                            _isAnalyzing
+                                ? 'Detecting...'
+                                : (_analysisResult?['category'] ?? 'Jewelry')),
+                        const SizedBox(height: 15),
+                        _buildInfoRow(
+                            Icons.verified_outlined,
+                            'Authenticity',
+                            _isAnalyzing
+                                ? 'Checking...'
+                                : (_analysisResult?['authenticity'] ??
+                                    'Pending')),
+                        const SizedBox(height: 15),
+                        _buildInfoRow(
+                            Icons.attach_money,
+                            'Est. Value',
+                            _isAnalyzing
+                                ? 'Calculating...'
+                                : (_analysisResult?['estimated_value'] ??
+                                    'N/A')),
+                        const SizedBox(height: 15),
+                        if (_analysisResult != null &&
+                            _analysisResult!['confidence'] != null)
+                          _buildInfoRow(Icons.analytics_outlined, 'Confidence',
+                              '${(_analysisResult!['confidence'] * 100).toStringAsFixed(1)}%'),
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
 
-          // Action Buttons
+          // Action Buttons (Fixed at bottom)
           Padding(
             padding: const EdgeInsets.all(20),
             child: Row(

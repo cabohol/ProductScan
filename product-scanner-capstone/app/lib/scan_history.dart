@@ -285,33 +285,21 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                                 color: Color(0xFF005461),
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              authenticity,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Icon(
-                                  Icons.verified,
-                                  size: 16,
-                                  color: authenticity == 'Authentic'
-                                      ? Colors.green
-                                      : Colors.orange,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  authenticity,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: authenticity == 'Authentic'
-                                        ? Colors.green
-                                        : Colors.orange,
-                                    fontWeight: FontWeight.w500,
+                                Flexible(
+                                  child: Text(
+                                    authenticity,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: authenticity == 'Authentic'
+                                          ? Colors.green
+                                          : Colors.orange,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -336,7 +324,6 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                           ],
                         ),
                       ),
-
                       // Chevron icon
                       const Icon(
                         Icons.chevron_right,
@@ -767,71 +754,73 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Image (show network or local image if available; fallback placeholder)
-                        Container(
-                          height: 200,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color(0xFF0C7779),
-                              width: 3,
+                        GestureDetector(
+                          onTap: () => _showImagePreview(widget.scan),
+                          child: Container(
+                            height: 200,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: const Color(0xFF0C7779),
+                                width: 3,
+                              ),
+                              color: Colors.grey[200],
                             ),
-                            color: Colors.grey[200],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(17),
-                            child: Builder(builder: (context) {
-                              final imageUrl =
-                                  widget.scan['image_url'] as String?;
-                              final imagePath =
-                                  widget.scan['image_path'] as String?;
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(17),
+                              child: Builder(builder: (context) {
+                                final imageUrl =
+                                    widget.scan['image_url'] as String?;
+                                final imagePath =
+                                    widget.scan['image_path'] as String?;
 
-                              // Prefer remote URL
-                              if (imageUrl != null && imageUrl.isNotEmpty) {
-                                return Image.network(
-                                  imageUrl,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (c, e, s) => Center(
+                                // Prefer remote URL
+                                if (imageUrl != null && imageUrl.isNotEmpty) {
+                                  return Image.network(
+                                    imageUrl,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (c, e, s) => Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 60,
+                                        color: const Color(0xFF0C7779)
+                                            .withOpacity(0.3),
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                // Local file path
+                                if (imagePath != null && imagePath.isNotEmpty) {
+                                  try {
+                                    final file = File(imagePath);
+                                    if (file.existsSync()) {
+                                      return Image.file(
+                                        file,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        fit: BoxFit.cover,
+                                      );
+                                    }
+                                  } catch (_) {}
+                                }
+
+                                // Fallback placeholder
+                                return Container(
+                                  color: Colors.grey[200],
+                                  child: Center(
                                     child: Icon(
-                                      Icons.broken_image,
-                                      size: 60,
+                                      Icons.diamond,
+                                      size: 80,
                                       color: const Color(0xFF0C7779)
                                           .withOpacity(0.3),
                                     ),
                                   ),
                                 );
-                              }
-
-                              // Local file path
-                              if (imagePath != null && imagePath.isNotEmpty) {
-                                try {
-                                  final file = File(imagePath);
-                                  if (file.existsSync()) {
-                                    return Image.file(
-                                      file,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      fit: BoxFit.cover,
-                                    );
-                                  }
-                                } catch (_) {}
-                              }
-
-                              // Fallback placeholder
-                              return Container(
-                                color: Colors.grey[200],
-                                child: Center(
-                                  child: Icon(
-                                    Icons.diamond,
-                                    size: 80,
-                                    color: const Color(0xFF0C7779)
-                                        .withOpacity(0.3),
-                                  ),
-                                ),
-                              );
-                            }),
+                              }),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 30),
@@ -1098,5 +1087,96 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
     } catch (e) {
       return dateString;
     }
+  }
+
+  void _showImagePreview(Map<String, dynamic> scan) {
+    final imageUrl = scan['image_url'] as String?;
+    final imagePath = scan['image_path'] as String?;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                color: Colors.black.withOpacity(0.7),
+              ),
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Builder(builder: (context) {
+                    // Prefer remote URL
+                    if (imageUrl != null && imageUrl.isNotEmpty) {
+                      return Image.network(
+                        imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (c, e, s) => Container(
+                          width: 300,
+                          height: 300,
+                          color: Colors.grey[300],
+                          child: Icon(
+                            Icons.broken_image,
+                            size: 80,
+                            color: const Color(0xFF0C7779).withOpacity(0.3),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Local file path
+                    if (imagePath != null && imagePath.isNotEmpty) {
+                      try {
+                        final file = File(imagePath);
+                        if (file.existsSync()) {
+                          return Image.file(
+                            file,
+                            fit: BoxFit.contain,
+                          );
+                        }
+                      } catch (_) {}
+                    }
+
+                    // Fallback
+                    return Container(
+                      width: 300,
+                      height: 300,
+                      color: Colors.grey[300],
+                      child: Icon(
+                        Icons.diamond,
+                        size: 100,
+                        color: const Color(0xFF0C7779).withOpacity(0.3),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Color(0xFF0C7779),
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
