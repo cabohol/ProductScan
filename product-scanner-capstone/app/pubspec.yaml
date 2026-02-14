@@ -16,8 +16,8 @@ dependencies:
   # Environment variables
   flutter_dotenv: ^5.1.0
 
-  # ONNX Runtime - UPDATED VERSION
-  onnxruntime: ^1.4.1  # Changed from ^1.16.0
+  # ONNX Runtime
+  onnxruntime: ^1.4.1
   
   camera: ^0.10.5
   image_picker: ^1.0.7
@@ -44,6 +44,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_native_splash: ^2.3.6
 
 flutter:
   uses-material-design: true
@@ -58,3 +59,8 @@ flutter:
     - family: Syne
       fonts:
         - asset: assets/fonts/Syne-VariableFont_wght.ttf
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/images/logo.png
+  android: true

@@ -36,13 +36,13 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
 
   Future<void> _initializeMap() async {
     try {
-      print('🗺️ Initializing map...');
+      print('Initializing map...');
       
       // Get user location
       _userLocation = await _getCurrentLocation();
       
       if (_userLocation == null) {
-        print('⚠️ Using default location (Davao City)');
+        print('Using default location (Davao City)');
         // Use default location if GPS fails (Davao City center)
         _userLocation = Position(
           latitude: 7.0700,
@@ -58,16 +58,16 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
         );
       }
 
-      print('📍 User location: ${_userLocation!.latitude}, ${_userLocation!.longitude}');
+      print('User location: ${_userLocation!.latitude}, ${_userLocation!.longitude}');
 
       // Fetch nearby stores
-      print('🔍 Searching for stores with: ${widget.productType}');
+      print('Searching for stores with: ${widget.productType}');
       _nearbyStores = await _storeService.getStoresWithProduct(
         widget.productType,
         _userLocation!,
       );
 
-      print('✅ Found ${_nearbyStores.length} stores');
+      print('Found ${_nearbyStores.length} stores');
 
       // Create markers
       _createMarkers();
@@ -75,7 +75,7 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
       setState(() => _isLoading = false);
 
     } catch (e, stackTrace) {
-      print('❌ Error initializing map: $e');
+      print('Error initializing map: $e');
       print('Stack trace: $stackTrace');
       setState(() {
         _errorMessage = e.toString();
@@ -87,29 +87,29 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
 
   Future<Position?> _getCurrentLocation() async {
     try {
-      print('📱 Checking location permission...');
+      print('Checking location permission...');
       
       // Check permission
       LocationPermission permission = await Geolocator.checkPermission();
-      print('🔐 Current permission: $permission');
+      print('Current permission: $permission');
       
       if (permission == LocationPermission.denied) {
-        print('🔐 Requesting permission...');
+        print('Requesting permission...');
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          print('❌ Location permission denied');
+          print('Location permission denied');
           _showError('Location permission denied');
           return null;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        print('❌ Location permission permanently denied');
+        print('Location permission permanently denied');
         _showError('Location permission permanently denied');
         return null;
       }
 
-      print('✅ Permission granted, getting position...');
+      print('Permission granted, getting position...');
       
       // Get current position with timeout
       final position = await Geolocator.getCurrentPosition(
@@ -117,18 +117,18 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
         timeLimit: const Duration(seconds: 10),
       );
       
-      print('✅ Got position: ${position.latitude}, ${position.longitude}');
+      print('Got position: ${position.latitude}, ${position.longitude}');
       return position;
       
     } catch (e) {
-      print('❌ Error getting location: $e');
+      print('Error getting location: $e');
       return null;
     }
   }
 
   void _createMarkers() {
     _markers.clear();
-    print('📍 Creating ${_nearbyStores.length + 1} markers...');
+    print('Creating ${_nearbyStores.length + 1} markers...');
 
     // Add user location marker (blue)
     if (_userLocation != null) {
@@ -140,13 +140,13 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
           infoWindow: const InfoWindow(title: 'Your Location'),
         ),
       );
-      print('✅ Added user marker at ${_userLocation!.latitude}, ${_userLocation!.longitude}');
+      print('Added user marker at ${_userLocation!.latitude}, ${_userLocation!.longitude}');
     }
 
     // Add store markers (green)
     for (int i = 0; i < _nearbyStores.length; i++) {
       final store = _nearbyStores[i];
-      print('✅ Adding store marker: ${store['store_name']} at ${store['latitude']}, ${store['longitude']}');
+      print('Adding store marker: ${store['store_name']} at ${store['latitude']}, ${store['longitude']}');
       
       _markers.add(
         Marker(
@@ -162,7 +162,7 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
       );
     }
     
-    print('✅ Total markers created: ${_markers.length}');
+    print('Total markers created: ${_markers.length}');
   }
 
   void _showStoreDetails(Map<String, dynamic> store) {
@@ -257,7 +257,7 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
       store['longitude'],
     );
 
-    print('🗺️ Opening directions: $url');
+    print('Opening directions: $url');
 
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
@@ -345,7 +345,7 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
                           zoomControlsEnabled: true,
                           compassEnabled: true,
                           onMapCreated: (controller) {
-                            print('✅ Map created successfully');
+                            print('Map created successfully');
                             _mapController = controller;
                           },
                         ),
@@ -402,8 +402,8 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
                         ),
                       ],
                     ),
-    );
-  }
+                  );
+                }
 
   Widget _buildStoreCard(Map<String, dynamic> store) {
     return GestureDetector(

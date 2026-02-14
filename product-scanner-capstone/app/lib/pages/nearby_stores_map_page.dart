@@ -38,13 +38,13 @@ class _NearbyStoresMapPageState extends State<NearbyStoresMapPage> {
 
   Future<void> _initializeMap() async {
     try {
-      print('🗺️ Initializing map...');
+      print('Initializing map...');
 
       // Get user location
       _userLocation = await _getCurrentLocation();
 
 if (_userLocation == null) {
-        print('⚠️ Using default location (Butuan City)');
+        print('Using default location (Butuan City)');
         _userLocation = Position(
           latitude: 8.9475,
           longitude: 125.5406,
@@ -60,23 +60,23 @@ if (_userLocation == null) {
       }
 
       print(
-          '📍 User location: ${_userLocation!.latitude}, ${_userLocation!.longitude}');
+          'User location: ${_userLocation!.latitude}, ${_userLocation!.longitude}');
 
       // Fetch nearby stores
-      print('🔍 Searching for stores with: ${widget.productType}');
+      print('Searching for stores with: ${widget.productType}');
       _nearbyStores = await _storeService.getStoresWithProduct(
         widget.productType,
         _userLocation!,
       );
 
-      print('✅ Found ${_nearbyStores.length} stores');
+      print('Found ${_nearbyStores.length} stores');
 
       // Create markers
       _createMarkers();
 
       setState(() => _isLoading = false);
     } catch (e, stackTrace) {
-      print('❌ Error initializing map: $e');
+      print('Error initializing map: $e');
       print('Stack trace: $stackTrace');
       setState(() {
         _errorMessage = e.toString();
@@ -88,29 +88,29 @@ if (_userLocation == null) {
 
   Future<Position?> _getCurrentLocation() async {
     try {
-      print('📱 Checking location permission...');
+      print('Checking location permission...');
 
       // Check permission
       LocationPermission permission = await Geolocator.checkPermission();
-      print('🔐 Current permission: $permission');
+      print('Current permission: $permission');
 
       if (permission == LocationPermission.denied) {
-        print('🔐 Requesting permission...');
+        print('Requesting permission...');
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          print('❌ Location permission denied');
+          print('Location permission denied');
           _showError('Location permission denied');
           return null;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        print('❌ Location permission permanently denied');
+        print('Location permission permanently denied');
         _showError('Location permission permanently denied');
         return null;
       }
 
-      print('✅ Permission granted, getting position...');
+      print('Permission granted, getting position...');
 
       // Get current position with timeout
       final position = await Geolocator.getCurrentPosition(
@@ -118,17 +118,17 @@ if (_userLocation == null) {
         timeLimit: const Duration(seconds: 10),
       );
 
-      print('✅ Got position: ${position.latitude}, ${position.longitude}');
+      print('Got position: ${position.latitude}, ${position.longitude}');
       return position;
     } catch (e) {
-      print('❌ Error getting location: $e');
+      print('Error getting location: $e');
       return null;
     }
   }
 
   void _createMarkers() {
     _markers.clear();
-    print('📍 Creating ${_nearbyStores.length + 1} markers...');
+    print('Creating ${_nearbyStores.length + 1} markers...');
 
     // Add user location marker (blue)
     if (_userLocation != null) {
@@ -141,14 +141,14 @@ if (_userLocation == null) {
         ),
       );
       print(
-          '✅ Added user marker at ${_userLocation!.latitude}, ${_userLocation!.longitude}');
+          'Added user marker at ${_userLocation!.latitude}, ${_userLocation!.longitude}');
     }
 
     // Add store markers (green)
     for (int i = 0; i < _nearbyStores.length; i++) {
       final store = _nearbyStores[i];
       print(
-          '✅ Adding store marker: ${store['store_name']} at ${store['latitude']}, ${store['longitude']}');
+          'Adding store marker: ${store['store_name']} at ${store['latitude']}, ${store['longitude']}');
 
       _markers.add(
         Marker(
@@ -165,7 +165,7 @@ if (_userLocation == null) {
       );
     }
 
-    print('✅ Total markers created: ${_markers.length}');
+    print('Total markers created: ${_markers.length}');
   }
 
   void _showStoreDetails(Map<String, dynamic> store) {
@@ -293,7 +293,7 @@ if (_userLocation == null) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✅ ${store['store_name']} saved to your scan!'),
+              content: Text('${store['store_name']} saved to your scan!'),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 2),
             ),
@@ -326,7 +326,7 @@ if (_userLocation == null) {
       store['longitude'],
     );
 
-    print('🗺️ Opening directions: $url');
+    print('Opening directions: $url');
 
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
@@ -414,7 +414,7 @@ if (_userLocation == null) {
                           zoomControlsEnabled: true,
                           compassEnabled: true,
                           onMapCreated: (controller) {
-                            print('✅ Map created successfully');
+                            print('Map created successfully');
                             if (!mounted) return;
                             setState(() {
                               _mapController = controller;
@@ -435,10 +435,10 @@ if (_userLocation == null) {
                             });
                           },
                           onCameraMove: (position) {
-                            print('📷 Camera moved to: ${position.target}');
+                            print('Camera moved to: ${position.target}');
                           },
                           onCameraIdle: () {
-                            print('📷 Camera idle');
+                            print('Camera idle');
                           },
                         ),
 
@@ -495,8 +495,8 @@ if (_userLocation == null) {
                         ),
                       ],
                     ),
-    );
-  }
+                  );
+                }
 
   Widget _buildStoreCard(Map<String, dynamic> store) {
     return GestureDetector(

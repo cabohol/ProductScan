@@ -11,13 +11,13 @@ class OnnxService {
 
   Future<void> loadModel() async {
     try {
-      print('🔄 Loading ONNX model...');
+      print('Loading ONNX model...');
 
       // Initialize ONNX Runtime
       try {
         OrtEnv.instance.init();
       } catch (e) {
-        print('⚠️ OrtEnv already initialized or failed: $e');
+        print('OrtEnv already initialized or failed: $e');
       }
 
       // Load model from assets
@@ -37,43 +37,43 @@ class OnnxService {
           .toList();
 
       _isModelLoaded = true;
-      print('✅ ONNX model loaded successfully');
-      print('📋 Classes: ${_labels?.length ?? 0}');
-      print('📋 Labels: $_labels');
+      print('ONNX model loaded successfully');
+      print('Classes: ${_labels?.length ?? 0}');
+      print('Labels: $_labels');
     } catch (e) {
-      print('❌ Error loading ONNX model: $e');
+      print('Error loading ONNX model: $e');
       _isModelLoaded = false;
       rethrow;
     }
   }
 
   Future<void> testModel() async {
-    print('🧪 ============ MODEL TEST ============');
-    print('✅ Model loaded: $_isModelLoaded');
-    print('✅ Session exists: ${_session != null}');
-    print('✅ Labels count: ${_labels?.length ?? 0}');
-    print('✅ Labels: $_labels');
+    print('============ MODEL TEST ============');
+    print('Model loaded: $_isModelLoaded');
+    print('Session exists: ${_session != null}');
+    print('Labels count: ${_labels?.length ?? 0}');
+    print('Labels: $_labels');
 
     if (_session != null) {
       try {
-        print('📥 Input names: ${_session!.inputNames}');
-        print('📤 Output names: ${_session!.outputNames}');
+        print('Input names: ${_session!.inputNames}');
+        print('Output names: ${_session!.outputNames}');
 
         // Try to get input/output shapes
         final inputs = _session!.inputNames;
         final outputs = _session!.outputNames;
 
-        print('📐 Number of inputs: ${inputs.length}');
-        print('📐 Number of outputs: ${outputs.length}');
+        print('Number of inputs: ${inputs.length}');
+        print('Number of outputs: ${outputs.length}');
       } catch (e) {
-        print('❌ Error getting model info: $e');
+        print('Error getting model info: $e');
       }
     }
-    print('🧪 ============ TEST END ============\n');
+    print('============ TEST END ============\n');
   }
 
   Future<void> _testModel() async {
-    print('🧪 Testing model...');
+    print('Testing model...');
     print('Session: ${_session != null}');
     print('Labels: ${_labels?.length}');
     print('Model loaded: $_isModelLoaded');
@@ -86,7 +86,7 @@ class OnnxService {
 
   Future<Map<String, dynamic>?> predict(File imageFile) async {
     if (!_isModelLoaded || _session == null) {
-      print('❌ Model not loaded!');
+      print('Model not loaded!');
       return {
         'success': false,
         'product_name': 'Model not loaded',
@@ -98,7 +98,7 @@ class OnnxService {
     }
 
     try {
-      print('🔍 Starting prediction...');
+      print('Starting prediction...');
 
       // Preprocess image
       final inputTensor = await _preprocessImage(imageFile);
@@ -118,7 +118,7 @@ class OnnxService {
 
       return result;
     } catch (e) {
-      print('❌ Prediction error: $e');
+      print('Prediction error: $e');
       return {
         'success': false,
         'product_name': 'Prediction failed',
@@ -133,19 +133,19 @@ class OnnxService {
 
   Future<OrtValueTensor> _preprocessImage(File imageFile) async {
     try {
-      print('📸 Loading image...');
+      print('Loading image...');
       final bytes = await imageFile.readAsBytes();
-      print('📸 Bytes loaded: ${bytes.length}');
+      print('Bytes loaded: ${bytes.length}');
 
       final image = img.decodeImage(bytes);
 
       if (image == null) throw Exception('Failed to decode image');
 
-      print('📐 Original size: ${image.width}x${image.height}');
+      print('Original size: ${image.width}x${image.height}');
 
       // Resize to 640x640
       final resized = img.copyResize(image, width: 640, height: 640);
-      print('📐 Resized to: ${resized.width}x${resized.height}');
+      print('Resized to: ${resized.width}x${resized.height}');
 
       // Convert to float32 array [1, 3, 640, 640]
       final inputShape = [1, 3, 640, 640];
@@ -165,21 +165,21 @@ class OnnxService {
         }
       }
 
-      print('✅ Preprocessed: $inputShape');
+      print('Preprocessed: $inputShape');
       print(
-          '✅ Data range: ${inputData[0].toStringAsFixed(3)} to ${inputData[inputData.length - 1].toStringAsFixed(3)}');
+          'Data range: ${inputData[0].toStringAsFixed(3)} to ${inputData[inputData.length - 1].toStringAsFixed(3)}');
 
       return OrtValueTensor.createTensorWithDataList(inputData, inputShape);
     } catch (e, stackTrace) {
-      print('❌ Preprocessing error: $e');
-      print('❌ Stack: $stackTrace');
+      print('Preprocessing error: $e');
+      print('Stack: $stackTrace');
       rethrow;
     }
   }
 
   Map<String, dynamic>? _processOutput(List<OrtValue?>? outputs) {
     if (outputs == null || outputs.isEmpty) {
-      print('❌ No outputs from model');
+      print('No outputs from model');
       return _noDetectionResult();
     }
 
@@ -188,7 +188,7 @@ class OnnxService {
       final outputData = output?.value;
 
       if (outputData is! List) {
-        print('❌ Unexpected output format');
+        print('Unexpected output format');
         return _noDetectionResult();
       }
 
@@ -202,9 +202,9 @@ class OnnxService {
       }
 
       int numDetections = (batch[0] as List).length;
-      print('📊 Processing $numDetections detections...');
+      print('Processing $numDetections detections...');
 
-      // ✅ STRICTER THRESHOLDS
+      //STRICTER THRESHOLDS
       const double DETECTION_THRESHOLD = 0.50;
       const double MINIMUM_CONFIDENCE = 0.65;
       const int MINIMUM_DETECTIONS = 5;
@@ -237,44 +237,44 @@ class OnnxService {
         }
       }
 
-      // 🔍 DETAILED DEBUG
-      print('\n📊 ========== DETECTION SUMMARY ==========');
+      // DETAILED DEBUG
+      print('\n========== DETECTION SUMMARY ==========');
       print(
-          '🔵 EARRING (class 0): ${classDetections[0]?.length ?? 0} detections, ${classVotes[0]} votes');
+          'EARRING (class 0): ${classDetections[0]?.length ?? 0} detections, ${classVotes[0]} votes');
       if (classDetections[0]!.isNotEmpty) {
         print(
             '   Top scores: ${classDetections[0]!.take(3).map((s) => s.toStringAsFixed(3)).join(", ")}');
       }
 
       print(
-          '🟢 NECKLACE (class 1): ${classDetections[1]?.length ?? 0} detections, ${classVotes[1]} votes');
+          'NECKLACE (class 1): ${classDetections[1]?.length ?? 0} detections, ${classVotes[1]} votes');
       if (classDetections[1]!.isNotEmpty) {
         print(
             '   Top scores: ${classDetections[1]!.take(3).map((s) => s.toStringAsFixed(3)).join(", ")}');
       }
 
       print(
-          '🔴 RING (class 2): ${classDetections[2]?.length ?? 0} detections, ${classVotes[2]} votes');
+          'RING (class 2): ${classDetections[2]?.length ?? 0} detections, ${classVotes[2]} votes');
       if (classDetections[2]!.isNotEmpty) {
         print(
             '   Top scores: ${classDetections[2]!.take(3).map((s) => s.toStringAsFixed(3)).join(", ")}');
       }
 
-      print('📈 Total valid detections: $totalValidDetections');
+      print('Total valid detections: $totalValidDetections');
       print('==========================================\n');
 
-      // ✅ VALIDATION 1: Enough detections?
+      // VALIDATION 1: Enough detections?
       if (totalValidDetections < MINIMUM_DETECTIONS) {
         print(
-            '❌ REJECTED: Not enough detections ($totalValidDetections < $MINIMUM_DETECTIONS)');
+            'REJECTED: Not enough detections ($totalValidDetections < $MINIMUM_DETECTIONS)');
         return _noDetectionResult();
       }
 
-      // ✅ VALIDATION 2: Clear consensus?
+      // VALIDATION 2: Clear consensus
       int maxVotes = classVotes.values.reduce((a, b) => a > b ? a : b);
       if (maxVotes < totalValidDetections * CONSENSUS_RATIO) {
         print(
-            '❌ REJECTED: No consensus (${(maxVotes / totalValidDetections * 100).toStringAsFixed(1)}% < ${CONSENSUS_RATIO * 100}%)');
+            'REJECTED: No consensus (${(maxVotes / totalValidDetections * 100).toStringAsFixed(1)}% < ${CONSENSUS_RATIO * 100}%)');
         return _noDetectionResult();
       }
 
@@ -282,23 +282,23 @@ class OnnxService {
       int winningClass =
           classVotes.entries.reduce((a, b) => a.value > b.value ? a : b).key;
 
-      // ✅ VALIDATION 3: Winning class must have good scores
+      // VALIDATION 3: Winning class must have good scores
       List<double> winningScores = classDetections[winningClass]!
           .where((s) => s > MINIMUM_CONFIDENCE)
           .toList();
 
       if (winningScores.isEmpty) {
-        print('❌ REJECTED: No scores above minimum confidence');
+        print('REJECTED: No scores above minimum confidence');
         return _noDetectionResult();
       }
 
-      // ✅ VALIDATION 4: Use AVERAGE of top scores (more robust)
+      // VALIDATION 4: Use AVERAGE of top scores (more robust)
       winningScores.sort((a, b) => b.compareTo(a));
       List<double> topScores = winningScores.take(5).toList();
       double avgConfidence =
           topScores.reduce((a, b) => a + b) / topScores.length;
 
-      print('🎯 WINNER: class=$winningClass (${_labels?[winningClass]})');
+      print('WINNER: class=$winningClass (${_labels?[winningClass]})');
       print(
           '   Votes: $maxVotes/$totalValidDetections (${(maxVotes / totalValidDetections * 100).toStringAsFixed(1)}%)');
       print('   Max confidence: ${winningScores.first.toStringAsFixed(3)}');
@@ -307,15 +307,15 @@ class OnnxService {
       // Final confidence check
       if (avgConfidence < MINIMUM_CONFIDENCE) {
         print(
-            '❌ REJECTED: Average confidence too low (${avgConfidence.toStringAsFixed(3)} < $MINIMUM_CONFIDENCE)');
+            'REJECTED: Average confidence too low (${avgConfidence.toStringAsFixed(3)} < $MINIMUM_CONFIDENCE)');
         return _noDetectionResult(avgConfidence);
       }
 
-      // ✅ SUCCESS - Return result
+      // SUCCESS - Return result
       if (_labels != null && winningClass < _labels!.length) {
         final label = _labels![winningClass].trim(); // ← Ensure trimmed
         print(
-            '✅ FINAL DETECTION: "$label" with ${avgConfidence.toStringAsFixed(3)} confidence\n');
+            'FINAL DETECTION: "$label" with ${avgConfidence.toStringAsFixed(3)} confidence\n');
 
         return {
           'success': true,
@@ -331,8 +331,8 @@ class OnnxService {
 
       return _noDetectionResult();
     } catch (e, stackTrace) {
-      print('❌ Output processing error: $e');
-      print('❌ Stack: $stackTrace');
+      print('Output processing error: $e');
+      print('Stack: $stackTrace');
       return null;
     }
   }
@@ -363,7 +363,7 @@ class OnnxService {
   }
 
   String _estimateValue(String category, double confidence) {
-    print('💰 Calculating price for: "$category"');
+    print('Calculating price for: "$category"');
 
     Map<String, int> baseValues = {
       'ring': 800,
@@ -373,7 +373,7 @@ class OnnxService {
 
     int base = baseValues[category] ?? 500;
 
-    print('💰 Base value: ₱$base');
+    print('Base value: ₱$base');
 
     double estimated = base * (0.5 + confidence * 0.5);
     return '₱${estimated.toStringAsFixed(0)} - ₱${(estimated * 1.5).toStringAsFixed(0)}';
@@ -383,6 +383,6 @@ class OnnxService {
     _session?.release();
     OrtEnv.instance.release();
     _isModelLoaded = false;
-    print('🔒 ONNX model closed');
+    print('ONNX model closed');
   }
 }

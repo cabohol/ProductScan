@@ -79,7 +79,7 @@ class _JewelScanPageState extends State<JewelScanPage>
 
     try {
       await _onnxService.loadModel();
-      print('✅ ONNX model ready!');
+      print('ONNX model ready!');
 
       // TEST THE MODEL
       await _onnxService.testModel();
@@ -88,8 +88,8 @@ class _JewelScanPageState extends State<JewelScanPage>
         _isModelLoading = false; // ← MODEL LOADED
       });
     } catch (e) {
-      print('❌ Failed to load ONNX: $e');
-      print('❌ Stack trace: ${StackTrace.current}');
+      print('Failed to load ONNX: $e');
+      print('Stack trace: ${StackTrace.current}');
 
       setState(() {
         _isModelLoading = false;
@@ -201,13 +201,13 @@ class _JewelScanPageState extends State<JewelScanPage>
     });
 
     try {
-      print('\n🔍 ============ ANALYSIS START ============');
-      print('📁 Image path: ${imageFile.path}');
+      print('\n============ ANALYSIS START ============');
+      print('Image path: ${imageFile.path}');
 
       var result = await _onnxService.predict(imageFile);
 
-      print('📊 Result: $result');
-      print('🔍 ============ ANALYSIS END ============\n');
+      print('Result: $result');
+      print('============ ANALYSIS END ============\n');
 
       if (result != null) {
         setState(() {
@@ -216,12 +216,12 @@ class _JewelScanPageState extends State<JewelScanPage>
         });
 
         if (result['success'] == true) {
-          print('✅ Detection successful!');
+          print('Detection successful!');
 
-          // ✅ AUTO-SAVE TO SUPABASE
+          // AUTO-SAVE TO SUPABASE
           await _saveResultToDatabase();
         } else {
-          print('⚠️ No detection or low confidence');
+          print('No detection or low confidence');
         }
       } else {
         setState(() {
@@ -230,8 +230,8 @@ class _JewelScanPageState extends State<JewelScanPage>
         _showError('Failed to analyze image');
       }
     } catch (e, stackTrace) {
-      print('❌ Error: $e');
-      print('❌ Stack: $stackTrace');
+      print('Error: $e');
+      print('Stack: $stackTrace');
       setState(() {
         _isAnalyzing = false;
       });
@@ -269,10 +269,10 @@ class _JewelScanPageState extends State<JewelScanPage>
         setState(() {
           _lastScanId = scanRecord['id'];
         });
-        print('✅ Auto-saved to Supabase with ID: ${scanRecord['id']}');
+        print('Auto-saved to Supabase with ID: ${scanRecord['id']}');
       }
     } catch (e) {
-      print('❌ Auto-save failed: $e');
+      print('Auto-save failed: $e');
       // Don't show error to user - silent fail
     }
   }
@@ -532,7 +532,7 @@ class _JewelScanPageState extends State<JewelScanPage>
     }
 
     // DEBUG: print the full analysis result so we can see which keys exist
-    print('🧾 _saveResult - analysisResult: $_analysisResult');
+    print('_saveResult - analysisResult: $_analysisResult');
 
     // Safer extraction: try several common keys that ONNX/YOLO might return
     final dynamic rawCategory = _analysisResult!['category'] ??
@@ -541,7 +541,7 @@ class _JewelScanPageState extends State<JewelScanPage>
     final String yoloLabelStr = (rawCategory != null)
         ? rawCategory.toString().toLowerCase()
         : 'jewelry';
-    print('🏷️ Resolved yoloLabel: $yoloLabelStr');
+    print('Resolved yoloLabel: $yoloLabelStr');
 
     // Show loading
     ScaffoldMessenger.of(context).showSnackBar(
@@ -572,7 +572,7 @@ class _JewelScanPageState extends State<JewelScanPage>
       if (scanRecord != null && scanRecord['id'] != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Scan result saved successfully!'),
+            content: Text('Scan result saved successfully!'),
             backgroundColor: Color(0xFF14A9A8),
           ),
         );

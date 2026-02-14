@@ -76,44 +76,34 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
               end: Alignment.bottomRight,
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Stack(
-                children: [
-                  Positioned(
-                    left: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back_ios_new,
-                            color: Colors.white, size: 22),
-                        padding: const EdgeInsets.all(12),
-                      ),
-                    ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start, 
+              crossAxisAlignment: CrossAxisAlignment.center, 
+              children: [
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white,
+                    size: 22,
                   ),
-                  Center(
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4),
-                      child: Text(
-                        'SCAN HISTORY',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'Syne',
-                          fontSize: 28,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.3,
-                        ),
-                      ),
-                    ),
+                  padding: const EdgeInsets.all(12),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'SCAN HISTORY',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Syne',
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.3,
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -235,7 +225,7 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                             final imageUrl = scan['image_url'] as String?;
                             final imagePath = scan['image_path'] as String?;
 
-                            // Prefer remote URL (if you later add upload-to-storage)
+                            // Prefer remote URL
                             if (imageUrl != null && imageUrl.isNotEmpty) {
                               return Image.network(
                                 imageUrl,
@@ -324,7 +314,6 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                           ],
                         ),
                       ),
-                      // Chevron icon
                       const Icon(
                         Icons.chevron_right,
                         color: Color(0xFF0C7779),
@@ -491,6 +480,8 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
   List<Map<String, dynamic>> _nearbyStores = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _hasStoreSaved = false;
+  LatLng? _storeLocation;
 
   @override
   void initState() {
@@ -527,21 +518,33 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
       // Check if a store was saved for this scan
       final scanId = widget.scan['id'] as int?;
       final savedStoreName = widget.scan['saved_store_name'];
+      final savedStoreId = widget.scan['saved_store_id'];
 
       if (scanId != null &&
           savedStoreName != null &&
-          savedStoreName.isNotEmpty) {
-        // Only show the saved store
-        final savedStoreId = widget.scan['saved_store_id'];
-        _nearbyStores = [
-          {
-            'id': savedStoreId,
-            'store_name': savedStoreName,
-            'latitude': 7.0700, // Placeholder - would need to fetch from DB
-            'longitude': 125.6100,
-            'distance_text': 'Saved Store',
-          }
-        ];
+          savedStoreName.isNotEmpty &&
+          savedStoreId != null) {
+        // Fetch the actual store details including location
+        final storeDetails = await widget.storeService.getStoreById(savedStoreId);
+        
+        if (storeDetails != null) {
+          _hasStoreSaved = true;
+          _storeLocation = LatLng(
+            storeDetails['latitude'] as double,
+            storeDetails['longitude'] as double,
+          );
+          
+          // Only show the saved store with actual coordinates
+          _nearbyStores = [
+            {
+              'id': savedStoreId,
+              'store_name': savedStoreName,
+              'latitude': storeDetails['latitude'],
+              'longitude': storeDetails['longitude'],
+              'distance_text': 'Saved Store',
+            }
+          ];
+        }
       } else {
         // Fetch all nearby stores
         _nearbyStores = await widget.storeService.getStoresWithProduct(
@@ -554,7 +557,7 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
 
       setState(() => _isLoading = false);
     } catch (e) {
-      print('❌ Error initializing map: $e');
+      print('Error initializing map: $e');
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
@@ -580,7 +583,7 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
 
       return position;
     } catch (e) {
-      print('❌ Error getting location: $e');
+      print('Error getting location: $e');
       return null;
     }
   }
@@ -888,10 +891,12 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
                               ),
                               child: GoogleMap(
                                 initialCameraPosition: CameraPosition(
-                                  target: LatLng(
-                                    _userLocation!.latitude,
-                                    _userLocation!.longitude,
-                                  ),
+                                  target: _hasStoreSaved && _storeLocation != null
+                                      ? _storeLocation!
+                                      : LatLng(
+                                          _userLocation!.latitude,
+                                          _userLocation!.longitude,
+                                        ),
                                   zoom: 13,
                                 ),
                                 markers: _markers,

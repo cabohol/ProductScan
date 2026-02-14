@@ -11,7 +11,7 @@ class SupabaseStoreService {
   Future<List<Map<String, dynamic>>> getStoresWithProduct(
       String productType, Position userLocation) async {
     try {
-      print('🔍 Searching for stores with product type: $productType');
+      print('Searching for stores with product type: $productType');
 
       // Step 1: Get ALL stores with their available_products field
       final storesResponse = await _supabase
@@ -19,11 +19,11 @@ class SupabaseStoreService {
           .select('id, store_name, latitude, longitude, available_products');
 
       if (storesResponse.isEmpty) {
-        print('⚠️ No stores found in database');
+        print('No stores found in database');
         return [];
       }
 
-      print('📍 Retrieved ${(storesResponse as List).length} total stores');
+      print('Retrieved ${(storesResponse as List).length} total stores');
 
       // Step 2: Filter stores that have the product type in available_products
       // The available_products field should contain comma-separated values like:
@@ -38,16 +38,16 @@ class SupabaseStoreService {
         if (availableProducts != null &&
             availableProducts.contains(productType.toLowerCase())) {
           matchingStores.add(store);
-          print('✅ Store "${store['store_name']}" has $productType');
+          print('Store "${store['store_name']}" has $productType');
         }
       }
 
       if (matchingStores.isEmpty) {
-        print('⚠️ No stores found selling: $productType');
+        print('No stores found selling: $productType');
         return [];
       }
 
-      print('✅ Found ${matchingStores.length} stores with $productType');
+      print('Found ${matchingStores.length} stores with $productType');
 
       // Step 3: Calculate distances using Haversine formula (great-circle distance)
       List<Map<String, dynamic>> storesWithDistance = [];
@@ -75,10 +75,10 @@ class SupabaseStoreService {
       // Optional: Limit to nearest 10 stores to avoid overwhelming the user
       if (storesWithDistance.length > 10) {
         storesWithDistance = storesWithDistance.sublist(0, 10);
-        print('📊 Limiting to nearest 10 stores');
+        print('Limiting to nearest 10 stores');
       }
 
-      print('✅ Returning ${storesWithDistance.length} nearest stores');
+      print('Returning ${storesWithDistance.length} nearest stores');
 
       // Print the nearest stores for debugging
       for (var i = 0; i < storesWithDistance.length; i++) {
@@ -88,7 +88,7 @@ class SupabaseStoreService {
 
       return storesWithDistance;
     } catch (e, stackTrace) {
-      print('❌ Error fetching stores: $e');
+      print('Error fetching stores: $e');
       print('Stack trace: $stackTrace');
       return [];
     }
@@ -146,21 +146,21 @@ class SupabaseStoreService {
     String? imagePath,
   }) async {
     try {
-      print('💾 Saving scan result to Supabase...');
-      print('📝 Product: $productName');
-      print('📝 Category: $category');
-      print('📝 YOLO Label: $yoloLabel');
+      print('Saving scan result to Supabase...');
+      print('Product: $productName');
+      print('Category: $category');
+      print('YOLO Label: $yoloLabel');
 
       // Get current user ID
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) {
-        print('❌ Error: No user logged in!');
+        print('Error: No user logged in!');
         return null;
       }
-      print('👤 User ID: $userId');
+      print('User ID: $userId');
 
       // Step 1: Check if product already exists
-      print('🔎 Querying products table for existing product...');
+      print('Querying products table for existing product...');
       Map<String, dynamic>? existingProduct;
       try {
         final resp = await _supabase
@@ -169,12 +169,12 @@ class SupabaseStoreService {
             .eq('yolo_label', yoloLabel)
             .maybeSingle();
         existingProduct = (resp as Map<String, dynamic>?);
-        print('🔁 existingProduct response: $existingProduct');
+        print('existingProduct response: $existingProduct');
       } catch (e) {
-        print('❌ existingProduct query error: ${e.runtimeType} - $e');
+        print('existingProduct query error: ${e.runtimeType} - $e');
         try {
-          print('❌ details: ${(e as dynamic).details}');
-          print('❌ hint: ${(e as dynamic).hint}');
+          print('details: ${(e as dynamic).details}');
+          print('hint: ${(e as dynamic).hint}');
         } catch (_) {}
         return null;
       }
@@ -184,11 +184,11 @@ class SupabaseStoreService {
       if (existingProduct != null) {
         // Product exists, use existing ID
         productId = existingProduct['id'];
-        print('✅ Product already exists with ID: $productId');
+        print('Product already exists with ID: $productId');
       } else {
         // Step 2: Insert new product
         print(
-            '📝 Creating new product... payload: {category: $category, yolo_label: $yoloLabel}');
+            'Creating new product... payload: {category: $category, yolo_label: $yoloLabel}');
         try {
           final newProductResp = await _supabase
               .from('products')
@@ -201,19 +201,19 @@ class SupabaseStoreService {
 
           final newProduct = (newProductResp as Map<String, dynamic>);
           productId = newProduct['id'];
-          print('✅ New product created with ID: $productId');
+          print('New product created with ID: $productId');
         } catch (e) {
-          print('❌ newProduct insert error: ${e.runtimeType} - $e');
+          print('newProduct insert error: ${e.runtimeType} - $e');
           try {
-            print('❌ details: ${(e as dynamic).details}');
-            print('❌ hint: ${(e as dynamic).hint}');
+            print('details: ${(e as dynamic).details}');
+            print('hint: ${(e as dynamic).hint}');
           } catch (_) {}
           return null;
         }
       }
 
       // Step 3: Prepare scan data (and try to avoid duplicates)
-      print('💾 Preparing scan_history entry...');
+      print('Preparing scan_history entry...');
       final nowIso = DateTime.now().toIso8601String();
       final scanData = {
         'product_id': productId,
@@ -225,7 +225,7 @@ class SupabaseStoreService {
         'scan_date': nowIso,
       };
 
-      print('📦 Scan data: $scanData');
+      print('Scan data: $scanData');
 
       try {
         // DEDUPLICATION: check for an existing very recent scan for same user/product
@@ -246,7 +246,7 @@ class SupabaseStoreService {
 
         if (existing != null) {
           print(
-              '⚠️ Duplicate scan detected — returning existing record: $existing');
+              'Duplicate scan detected — returning existing record: $existing');
           return (existing as Map<String, dynamic>);
         }
 
@@ -256,19 +256,19 @@ class SupabaseStoreService {
             .select()
             .single();
 
-        print('🔁 scan_history insert response: $scanResp');
-        print('✅ Scan saved successfully!');
+        print('scan_history insert response: $scanResp');
+        print('Scan saved successfully!');
         return (scanResp as Map<String, dynamic>);
       } catch (e) {
-        print('❌ scan_history insert error: ${e.runtimeType} - $e');
+        print('scan_history insert error: ${e.runtimeType} - $e');
         try {
-          print('❌ details: ${(e as dynamic).details}');
-          print('❌ hint: ${(e as dynamic).hint}');
+          print('details: ${(e as dynamic).details}');
+          print('hint: ${(e as dynamic).hint}');
         } catch (_) {}
         return null;
       }
     } catch (e, stackTrace) {
-      print('❌ Error saving scan: $e');
+      print('Error saving scan: $e');
       print('Stack trace: $stackTrace');
       return null;
     }
@@ -281,8 +281,8 @@ class SupabaseStoreService {
     required String storeName,
   }) async {
     try {
-      print('💾 Saving selected store for scan...');
-      print('📍 Scan ID: $scanId, Store ID: $storeId, Store: $storeName');
+      print('Saving selected store for scan...');
+      print('Scan ID: $scanId, Store ID: $storeId, Store: $storeName');
 
       // Update scan_history with store_id and store_name
       await _supabase.from('scan_history').update({
@@ -290,10 +290,10 @@ class SupabaseStoreService {
         'saved_store_name': storeName,
       }).eq('id', scanId);
 
-      print('✅ Store saved successfully!');
+      print('Store saved successfully!');
       return true;
     } catch (e) {
-      print('❌ Error saving store: $e');
+      print('Error saving store: $e');
       return false;
     }
   }
@@ -314,7 +314,7 @@ class SupabaseStoreService {
       }
       return null;
     } catch (e) {
-      print('❌ Error getting saved store: $e');
+      print('Error getting saved store: $e');
       return null;
     }
   }
@@ -325,7 +325,7 @@ class SupabaseStoreService {
       // Filter by current user
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) {
-        print('❌ No user logged in');
+        print('No user logged in');
         return [];
       }
 
@@ -338,8 +338,32 @@ class SupabaseStoreService {
 
       return (response as List).cast<Map<String, dynamic>>();
     } catch (e) {
-      print('❌ Error fetching scan history: $e');
+      print('Error fetching scan history: $e');
       return [];
+    }
+  }
+
+  /// Get store details by store ID
+  Future<Map<String, dynamic>?> getStoreById(int storeId) async {
+    try {
+      print('Fetching store details for ID: $storeId');
+      
+      final response = await _supabase
+          .from('stores')
+          .select('id, store_name, latitude, longitude, available_products')
+          .eq('id', storeId)
+          .maybeSingle();
+      
+      if (response != null) {
+        print('Store found: ${response['store_name']}');
+        return response as Map<String, dynamic>;
+      }
+      
+      print('Store with ID $storeId not found');
+      return null;
+    } catch (e) {
+      print('Error fetching store by ID: $e');
+      return null;
     }
   }
 }
