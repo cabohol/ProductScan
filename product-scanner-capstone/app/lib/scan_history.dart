@@ -44,6 +44,73 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
     );
   }
 
+  void _deleteScan(int scanId, int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Scan'),
+          content: const Text(
+              'Are you sure you want to delete this scan? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                // Show loading indicator
+             ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Deleting scan...',
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Color(0xFF14A9A8),
+              ),
+            );
+
+
+                // Delete the scan
+                final success = await _storeService.deleteScan(scanId);
+
+                if (!mounted) return;
+
+                if (success) {
+                  // Refresh the scan history
+                  setState(() {
+                    _scanHistoryFuture =
+                        _storeService.getScanHistory(limit: 50);
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Scan deleted successfully'),
+                      backgroundColor: Color(0xFF14A9A8),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to delete scan'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   /// Format ISO date string to readable format
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return 'Unknown date';
@@ -79,8 +146,8 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.start, 
-              crossAxisAlignment: CrossAxisAlignment.center, 
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -314,10 +381,30 @@ class _ScanHistoryPageState extends State<ScanHistoryPage> {
                           ],
                         ),
                       ),
-                      const Icon(
-                        Icons.chevron_right,
-                        color: Color(0xFF0C7779),
-                        size: 28,
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () => _deleteScan(scan['id'], index),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right,
+                            color: Color(0xFF0C7779),
+                            size: 28,
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -525,15 +612,16 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
           savedStoreName.isNotEmpty &&
           savedStoreId != null) {
         // Fetch the actual store details including location
-        final storeDetails = await widget.storeService.getStoreById(savedStoreId);
-        
+        final storeDetails =
+            await widget.storeService.getStoreById(savedStoreId);
+
         if (storeDetails != null) {
           _hasStoreSaved = true;
           _storeLocation = LatLng(
             storeDetails['latitude'] as double,
             storeDetails['longitude'] as double,
           );
-          
+
           // Only show the saved store with actual coordinates
           _nearbyStores = [
             {
@@ -891,12 +979,13 @@ class _ScanDetailsPageState extends State<ScanDetailsPage> {
                               ),
                               child: GoogleMap(
                                 initialCameraPosition: CameraPosition(
-                                  target: _hasStoreSaved && _storeLocation != null
-                                      ? _storeLocation!
-                                      : LatLng(
-                                          _userLocation!.latitude,
-                                          _userLocation!.longitude,
-                                        ),
+                                  target:
+                                      _hasStoreSaved && _storeLocation != null
+                                          ? _storeLocation!
+                                          : LatLng(
+                                              _userLocation!.latitude,
+                                              _userLocation!.longitude,
+                                            ),
                                   zoom: 13,
                                 ),
                                 markers: _markers,

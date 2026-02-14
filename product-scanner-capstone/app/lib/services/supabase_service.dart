@@ -347,23 +347,38 @@ class SupabaseStoreService {
   Future<Map<String, dynamic>?> getStoreById(int storeId) async {
     try {
       print('Fetching store details for ID: $storeId');
-      
+
       final response = await _supabase
           .from('stores')
           .select('id, store_name, latitude, longitude, available_products')
           .eq('id', storeId)
           .maybeSingle();
-      
+
       if (response != null) {
         print('Store found: ${response['store_name']}');
         return response as Map<String, dynamic>;
       }
-      
+
       print('Store with ID $storeId not found');
       return null;
     } catch (e) {
       print('Error fetching store by ID: $e');
       return null;
+    }
+  }
+
+  /// Delete a scan from scan_history by scan ID
+  Future<bool> deleteScan(int scanId) async {
+    try {
+      print('Deleting scan with ID: $scanId');
+
+      await _supabase.from('scan_history').delete().eq('id', scanId);
+
+      print('Scan deleted successfully!');
+      return true;
+    } catch (e) {
+      print('Error deleting scan: $e');
+      return false;
     }
   }
 }
