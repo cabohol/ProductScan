@@ -7,7 +7,7 @@ import '../services/supabase_service.dart';
 class NearbyStoresMapPage extends StatefulWidget {
   final String productType;
   final String productName;
-  final int? scanId; // Used to save selected store
+  final int? scanId; // Used to save selected store 
 
   const NearbyStoresMapPage({
     super.key,
@@ -169,100 +169,111 @@ if (_userLocation == null) {
   }
 
   void _showStoreDetails(Map<String, dynamic> store) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
-          ),
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
         ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 20),
+          ),
+          const SizedBox(height: 20),
 
-            // Store name
-            Text(
-              store['store_name'],
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF005461),
-              ),
+          // Store name
+          Text(
+            store['store_name'],
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF005461),
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
 
-            // Distance
+          // Distance
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: Color(0xFF14A9A8)),
+              const SizedBox(width: 8),
+              Text(
+                store['distance_text'] ?? 'Distance unknown',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Duration (NEW)
+          if (store['duration_text'] != null)
             Row(
               children: [
-                const Icon(Icons.location_on, color: Color(0xFF14A9A8)),
+                const Icon(Icons.access_time, color: Color(0xFF14A9A8)),
                 const SizedBox(width: 8),
                 Text(
-                  store['distance_text'],
+                  store['duration_text'],
                   style: const TextStyle(fontSize: 16),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-
-            // Action buttons
-            Row(
-              children: [
-                // Save button (only if scanId is provided)
-                if (widget.scanId != null)
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _saveStore(store),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.save, color: Colors.white),
-                      label: const Text(
-                        'Save',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+          
+          // Route availability indicator (NEW)
+          if (store['route_available'] == false)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.orange[700]),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Showing straight-line distance',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange[700],
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
-                if (widget.scanId != null) const SizedBox(width: 12),
-                // Directions button
+                ],
+              ),
+            ),
+          
+          const SizedBox(height: 24),
+
+          // Action buttons (existing code)
+          Row(
+            children: [
+              if (widget.scanId != null)
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => _openDirections(store),
+                    onPressed: () => _saveStore(store),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF14A9A8),
+                      backgroundColor: Colors.green,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    icon: const Icon(Icons.directions, color: Colors.white),
+                    icon: const Icon(Icons.save, color: Colors.white),
                     label: const Text(
-                      'Directions',
+                      'Save',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -271,13 +282,35 @@ if (_userLocation == null) {
                     ),
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              if (widget.scanId != null) const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _openDirections(store),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF14A9A8),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.directions, color: Colors.white),
+                  label: const Text(
+                    'Directions',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _saveStore(Map<String, dynamic> store) async {
     if (widget.scanId == null) return;
@@ -498,67 +531,90 @@ if (_userLocation == null) {
                   );
                 }
 
-  Widget _buildStoreCard(Map<String, dynamic> store) {
-    return GestureDetector(
-      onTap: () {
-        // Move camera to store
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLng(
-            LatLng(store['latitude'], store['longitude']),
-          ),
-        );
-        _showStoreDetails(store);
-      },
-      child: Container(
-        width: 200,
-        margin: const EdgeInsets.only(right: 12, bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0C7779).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFF14A9A8),
-            width: 1,
-          ),
+ Widget _buildStoreCard(Map<String, dynamic> store) {
+  return GestureDetector(
+    onTap: () {
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLng(
+          LatLng(store['latitude'], store['longitude']),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              store['store_name'],
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF005461),
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+      );
+      _showStoreDetails(store);
+    },
+    child: Container(
+      width: 200,
+      margin: const EdgeInsets.only(right: 12, bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C7779).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF14A9A8),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            store['store_name'],
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF005461),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(
-                  Icons.location_on,
-                  size: 16,
-                  color: Color(0xFF14A9A8),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  store['distance_text'],
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(
+                Icons.location_on,
+                size: 16,
+                color: Color(0xFF14A9A8),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  store['distance_text'] ?? 'Unknown',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF005461),
                   ),
                 ),
+              ),
+            ],
+          ),
+          // Add duration (NEW)
+          if (store['duration_text'] != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(
+                  Icons.access_time,
+                  size: 16,
+                  color: Color(0xFF14A9A8),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    store['duration_text'],
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF005461),
+                    ),
+                  ),
+                ),
               ],
             ),
           ],
-        ),
+        ],
       ),
-    );
-  }
-
+    ),
+  );
+}
   Widget _buildErrorState() {
     return Center(
       child: Padding(
